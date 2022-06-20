@@ -1,0 +1,21 @@
+{
+  "name": "cloud",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "stable": "node index.js",
+    "debug-stable": "node --trace-deprecation index.js debug",
+    "dev": "node index.js dev",
+    "debug-dev": "node --trace-deprecation index.js dev debug"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+  },
+  "dependencies": {
+    "colors": "^1.4.0",
+    "node-getopt": "^0.3.2",
+    "discord.js": "^13.8.0"
+  }
+}
