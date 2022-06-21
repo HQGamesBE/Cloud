@@ -3,9 +3,8 @@
  * All rights reserved.
  * I don't want anyone to use my source code without permission.
  */
-class Server {
+class Server extends require("events").EventEmitter{
 	static QUERY_TIMEOUT = 5 * 1000;
-	static EVENTS = "creating_files" | "created_files" | "boot" |  "started" | "stopping" | "stopped" | "deleting" | "deleted" | "killing" | "killed";
 
 	query_running = false;
 	timed_out = false;
@@ -28,7 +27,7 @@ class Server {
 	 * @param {number} port
 	 */
 	constructor(template, identifier, port) {
-		this.events = new (require("events").EventEmitter)();
+		super();
 		this.template = template;
 		this.identifier = identifier;
 		this.port = port;
@@ -37,6 +36,15 @@ class Server {
 		this.backend_properties.template = template.name;
 		this.backend_properties.display_name = template.display_name;
 		this.backend_properties.image = template.image;
+	}
+
+	/**
+	 * @param {"creating_files"|"created_files"|"boot"|"started"|"command"|"stopping"|"stopped"|"killing"|"killed"|"deleting"|"deleted"} eventName
+	 * @param {(...args: any[]) => void} listener
+	 */
+	on(eventName, listener) {
+		super.on(eventName, listener);
+		return this;
 	}
 
 	async isTmuxSession() {
@@ -86,7 +94,7 @@ class Server {
 	}
 
 	async createFiles() {
-		this.events.emit("creating_files", this);
+		this.emit("creating_files", this);
 		this.online_state = ServerState.starting;
 		if (!LIBARIES.fs.existsSync(this.folder())) LIBARIES.fs.mkdirSync(this.folder(), {recursive: true});
 		if (!LIBARIES.fs.existsSync(serverManager.Software)) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + "".cyan + " Could not find the software in '" + serverManager.Software + "'!");
@@ -160,7 +168,7 @@ class Server {
 			for (let directory of directories) if (LIBARIES.fs.existsSync(serverManager.servers_folder(directory))) LIBARIES.fse.copySync(serverManager.servers_folder(directory), this.folder(directory));
 		})();
 
-		this.events.emit("created_files", this);
+		this.emit("created_files", this);
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Created files");
 	}
 
@@ -169,7 +177,7 @@ class Server {
 			console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Windows is not supported yet!".red);
 			return;
 		}
-		this.events.emit("boot", this);
+		this.emit("boot", this);
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Starting...");
 
 		if (!this.start_script) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because the start script is not defined!");
@@ -203,20 +211,20 @@ class Server {
 					resolve();
 				}
 			}, 100);
-			this.events.once("started", () => clearTimeout(timeout) && resolve());
+			this.once("started", () => clearTimeout(timeout) && resolve());
 		})
 		.then(() => {
-			this.events.emit("booted", this);
+			this.emit("booted", this);
 			console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Started!");
 		})
 		.catch(error => {
-			this.events.emit("error", error);
+			this.emit("error", error);
 			console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because " + error.message);
 		});
 	}
 
 	afterStart() {
-		this.events.emit("started", this);
+		this.emit("started", this);
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " PID: " + this.pid + " | Started on port " + this.port.toString().bgYellow.black);
 	}
 
@@ -244,17 +252,17 @@ class Server {
 
 	stop(reason) {
 		if (!this.running) return;
-		this.events.emit("stopping", this);
+		this.emit("stopping", this);
 		let timeout = setTimeout(() => this.kill() && this.deleteFiles(), 1000 * 7);
 		let done = this.executeCommand(reason ? "stop " + reason : "stop").then(() => clearTimeout(timeout) && this.deleteFiles());
 		this.running = false;
 		serverManager.servers.delete(this.identifier);
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Server stopped with reason: " + reason);
-		this.events.emit("stopped", this);
+		this.emit("stopped", this);
 	}
 
 	kill() {
-		this.events.emit("killing", this);
+		this.emit("killing", this);
 		if (!this.start_script) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because the start script is not defined!");
 		if (this.killed) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because it is already killed!");
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Killing server...");
@@ -268,16 +276,16 @@ class Server {
 		this.running = false;
 		this.killed = true;
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Server killed!");
-		this.events.emit("killed", this);
+		this.emit("killed", this);
 	}
 
 	deleteFiles() {
-		this.events.emit("deleting", this);
+		this.emit("deleting", this);
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Deleting files...");
 		LIBARIES.fs.unlinkSync(this.folder());
 		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Deleted files!");
-		this.events.emit("deleted", this);
-		this.events.removeAllListeners();
+		this.emit("deleted", this);
+		this.removeAllListeners();
 	}
 }
 module.exports.Server = Server;
