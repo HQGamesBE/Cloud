@@ -113,10 +113,8 @@ class Server {
 			else if (LIBARIES.os.platform() === "darwin") throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " MacOS is not supported yet!");
 			else if (LIBARIES.os.platform() === "linux") {
 				let php = serverManager.servers_folder("bin", "php7", "bin", "php");
-				if (!LIBARIES.fs.existsSync(php)) {
-					throw new Error("Could not find the php binary in '" + php + "'!");
-				}
-				LIBARIES.fs.writeFileSync(start_script = this.folder("start.sh"), php + " " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG_MODE ? " --debug" : ""));
+				if (!LIBARIES.fs.existsSync(php)) throw new Error("Could not find the php binary in '" + php + "', get it here https://jenkins.pmmp.io/job/PHP-8.0-Aggregate/lastSuccessfulBuild/artifact/PHP-8.0-Linux-x86_64.tar.gz!");
+				LIBARIES.fs.writeFileSync(start_script = this.folder("start.sh"), php + " " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : ""));
 			}
 			else throw new Error("Your operating system is not supported!");
 
