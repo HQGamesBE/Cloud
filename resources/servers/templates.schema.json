@@ -1,0 +1,62 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"type": "array",
+	"items": {
+		"type": "object",
+		"properties": {
+			"enabled": {
+				"type": "boolean",
+				"description": "Whether or not the template is enabled.",
+				"default": false
+			},
+			"name": {
+				"type": "string",
+				"description": "The name of the template. (Uppercase letters support.)"
+			},
+			"display_name": {
+				"type": "string",
+				"description": "The display name of the template. (§ format support)"
+			},
+			"type": {
+				"type": "string",
+				"description": "The type of the template.",
+				"enum": [
+					"lobby",
+					"game",
+					"builder",
+					"developer"
+				]
+			},
+			"maintained": {
+				"type": "boolean",
+				"description": "Whether or not the template is maintained.",
+				"default": false
+			},
+			"image": {
+				"type": ["null", "string"],
+				"description": "The image of the template.",
+				"default": null,
+				"patternProperties": {
+					"^textures\/[a-zA-Z0-9/_.-]$": {
+						"type": "string",
+						"description": "Resource-Pack textures.",
+						"format": "uri",
+						"pattern": "^textures\/$"
+					},
+					"^http://|https://$": {
+						"type": "string",
+						"description": "External textures.",
+						"format": "url",
+						"pattern": "^http://|https://$"
+					}
+				}
+			}
+		},
+		"additionalProperties": true,
+		"required": [
+			"name",
+			"type"
+		]
+	},
+	"additionalItems": true
+}

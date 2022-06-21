@@ -1,7 +1,8 @@
 {
   "name": "cloud",
   "version": "1.0.0",
-  "description": "",
+  "description": "Cloud for Minecraft Bedrock Servers",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "stable": "node index.js",
@@ -12,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "fs-extra": "^10.1.0",
     "colors": "^1.4.0",
     "discord.js": "^13.8.0",
     "jsonwebtoken": "^8.5.1",

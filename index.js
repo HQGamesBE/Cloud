@@ -16,21 +16,22 @@ if (opt.options.v === true) {
 	return;
 }
 
-global.generateId = function (length) {
+global.generateId = (length) => {
 	let result           = '';
 	let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	let charactersLength = characters.length;
-	for (let i = 0; i < length; i++) {
-		result += characters.charAt(Math.floor(Math.random() * charactersLength));
-	}
+	for (let i = 0; i < length; i++) result += characters.charAt(Math.floor(Math.random() * charactersLength));
 	return result;
 }
-global.eachOS = (win32, linux, darwin) => {
+global.eachOS= (win32, linux, darwin) => {
 	if (process.platform === "win32" && typeof win32 === "function") return win32();
 	else if (process.platform === "linux" && typeof linux === "function") return linux();
 	else if (process.platform === "darwin" && typeof darwin === "function") return darwin();
 	return undefined;
 };
+global.errorMessage = (message) => console.log("[Error] ".red.bold + message);
+
+
 const {ServerManager, GameState, ServerState, ServerType, ServerVisibility} = require('./src/classes/ServerManager.js');
 global.GameState = GameState;
 global.ServerState = ServerState;
@@ -40,6 +41,7 @@ global.ServerVisibility = ServerVisibility;
 global.term = require("terminal-kit").terminal;
 global.LIBARIES = {
 	fs: require("fs"),
+	fse: require("fs-extra"),
 	discord: require("discord.js"),
 	path: require("path"),
 	dgram: require("dgram"),

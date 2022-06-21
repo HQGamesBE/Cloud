@@ -21,15 +21,15 @@ class Socket {
 		});
 		this.socket.on("listening", () => {
 			this.running = true;
-			console.log("[SSocket] ".yellow + `Listening on port ${this.bind_host}:${this.bind_port}`);
+			console.log("[Socket] ".yellow + `Listening on port ${this.bind_host}:${this.bind_port}`);
 		});
 		this.socket.on("close", () => {
 			this.running = false;
-			console.log("[SSocket] ".yellow + "Socket closed");
+			console.log("[Socket] ".yellow + "Socket closed");
 		});
 		this.socket.on("error", (err) => {
 			this.running = false;
-			console.log(`[SSocket] Error: ${err}`);
+			console.log(`[Socket] Error: ${err}`);
 		});
 	}
 
@@ -129,7 +129,7 @@ class Socket {
 				break;
 			case "disconnect":
 				this.connections.delete(remoteInfo.address + ":" + remoteInfo.port);
-				console.log("[SSocket] ".yellow + "Disconnected from " + data.identifier);
+				console.log("[Socket] ".yellow + "Disconnected from " + data.identifier);
 				break;
 			case "start_server":
 				let template = serverManager.templates.filter(t => t.name === data[ "template_name" ]).first();
@@ -187,11 +187,11 @@ class Socket {
 	}
 
 	close() {
-		console.log("[SSocket] ".yellow + "Closing socket...");
+		console.log("[Socket] ".yellow + "Closing socket...");
 		if (this.running && this.socket.running) {
 			this.socket.close();
 		}
-		console.log("[SSocket] ".yellow + "Socket closed.");
+		console.log("[Socket] ".yellow + "Socket closed.");
 	}
 }
 module.exports.Socket = Socket

@@ -1,0 +1,10 @@
+[
+	{
+		"enabled": false,
+		"maintained": false,
+		"display_name": "§gLobby",
+		"name": "Lobby",
+		"image": null,
+		"type": "lobby"
+	}
+]

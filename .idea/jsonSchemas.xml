@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JsonSchemaMappingsProjectConfiguration">
+    <state>
+      <map>
+        <entry key="templates.schema">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="templates.schema" />
+              <option name="relativePathToSchema" value="resources/servers/templates.schema.json" />
+              <option name="patterns">
+                <list>
+                  <Item>
+                    <option name="path" value="resources/servers/templates.json" />
+                  </Item>
+                </list>
+              </option>
+            </SchemaInfo>
+          </value>
+        </entry>
+      </map>
+    </state>
+  </component>
+</project>
