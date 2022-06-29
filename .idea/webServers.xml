@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="3e4134e6-bc89-4c98-b954-e0d51cfd75c5" name="HQGamesBE">
+        <fileTransfer accessType="SFTP" host="45.142.115.5" port="1025" sshConfigId="45689229-bdb4-429a-a8cb-004ed6fd74d2" sshConfig="root@45.142.115.5:1025 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

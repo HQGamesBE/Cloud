@@ -54,18 +54,8 @@ class ServerManager {
 		console.log("[ServerManager] ".blue + "Starting...");
 		this.server = new Socket(this.bind_port);
 		this.server.start();
-		process.on("exit", () => {
-			console.log("[ServerManager] ".blue + "Shutting down...");
-			this.server.close();
-			if (this.query_interval) clearInterval(this.query_interval);
-			this.servers.forEach((server) => {
-				server.stop();
-				server.kill();
-			});
-			this.clearRunningFolder();
-			console.log("[ServerManager] ".blue + "Shutdown.");
-			console.log("Written by ".bgBlue.cyan + "xxAROX".underline.bgBlue);
-		});
+
+		process.on("exit", serverManager.exit);
 		this.clearRunningFolder();
 		this.loadTemplates();
 		this.query_interval = setInterval(() => {
@@ -80,6 +70,20 @@ class ServerManager {
 			}
 		}, 1000);
 		console.log("[ServerManager] ".blue + " Started!");
+	}
+
+	exit() {
+		console.log("[ServerManager] ".blue + "Shutting down...");
+		if (this.server) this.server.close();
+		if (this.query_interval) clearInterval(this.query_interval);
+		serverManager.servers.forEach((server) => {
+			console.log(server)
+			server.stop();
+			server.kill();
+		});
+		serverManager.clearRunningFolder();
+		console.log("[ServerManager] ".blue + "Shutdown.");
+		console.log("Written by ".bgBlue.cyan + "xxAROX".underline.bgBlue);
 	}
 
 	randomPort() {

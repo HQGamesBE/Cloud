@@ -94,7 +94,8 @@ readline.on("line", (input) => {
 				command.execute(args);
 			}
 		} catch (e) {
-			throw new Error("Command failed: " + e);
+			console.error("Command failed".red);
+			console.error(e);
 		}
 	} else {
 		console.log("Command '".red + input_command + "' not found!".red);
