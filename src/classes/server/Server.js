@@ -7,6 +7,7 @@ class Server extends require("events").EventEmitter{
 	static QUERY_TIMEOUT = 5 * 1000;
 
 	query_running = false;
+	created = -1;
 	timed_out = false;
 	query_errors = [];
 	public_visibility = ServerVisibility.private;
@@ -28,6 +29,7 @@ class Server extends require("events").EventEmitter{
 	 */
 	constructor(template, identifier, port) {
 		super();
+		this.created = Date.now();
 		this.template = template;
 		this.identifier = identifier;
 		this.port = port;
@@ -51,7 +53,6 @@ class Server extends require("events").EventEmitter{
 		// noinspection JSCheckFunctionSignatures
 		let {strout, strerr} = await LIBARIES.promisify(require("child_process").exec)(`tmux has-session -t ${this.identifier}`).toString();
 		let a =  strout.stdout.startsWith("can't find session") || strout.stdout.includes("no server running on ");
-		console.log(a);
 		return !a;
 	}
 
@@ -64,7 +65,7 @@ class Server extends require("events").EventEmitter{
 			try {
 				let data = await LIBARIES.libquery.query(eachOS(() => "127.0.0.1", () => "0.0.0.0", () => "0.0.0.0"), server.port, Server.QUERY_TIMEOUT);
 				server.player_count = data.online;
-				return true;
+				return !server.timed_out && server.running && !server.killed;
 			} catch (err) {
 				server.query_errors.push(err);
 				return false;
@@ -76,7 +77,6 @@ class Server extends require("events").EventEmitter{
 		if (!(await isOnlineFunc(this))) {
 			if (this.query_errors.length > 5) {
 				this.timed_out = true;
-				console.error(new Error("Server timed out"));
 				this.timeout();
 			}
 		} else {
@@ -185,7 +185,7 @@ class Server extends require("events").EventEmitter{
 		eachOS(
 			() => {
 				LIBARIES.child_process.exec("cd " + this.folder() + " && start start.bat && exit");
-				errorMessage("Console must be closed manually!".bold.underline.italic);
+				Logger.error("Console must be closed manually!".bold.underline.italic);
 			},
 			() => {
 				LIBARIES.child_process.exec("cd " + this.folder() + " && tmux new-session -d -s " + this.identifier + " ./start.sh");
@@ -219,7 +219,7 @@ class Server extends require("events").EventEmitter{
 		})
 		.catch(error => {
 			this.emit("error", error);
-			console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because " + error.message);
+			console.error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because " + error.message);
 		});
 	}
 

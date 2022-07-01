@@ -1,10 +1,11 @@
 [
 	{
-		"enabled": false,
+		"enabled": true,
 		"maintained": false,
 		"display_name": "§gLobby",
 		"name": "Lobby",
 		"image": null,
-		"type": "lobby"
+		"type": "lobby",
+		"start_amount": 2
 	}
 ]

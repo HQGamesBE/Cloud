@@ -32,6 +32,31 @@
 				"description": "Whether or not the template is maintained.",
 				"default": false
 			},
+			"start_amount": {
+				"type": "integer",
+				"description": "Amount of servers that will started on cloud start.",
+				"default": 1
+			},
+			"max_players": {
+				"type": "integer",
+				"description": "Maximum players per server.",
+				"minimum": 1,
+				"default": 1
+			},
+			"player_minimum_percent": {
+				"type": "integer",
+				"description": "If the %-value of the {max_players} is reached a not used server of that template will automatically stopped.",
+				"minimum": 0,
+				"maximum": 100,
+				"default": 0
+			},
+			"player_maximum_percent": {
+				"type": "integer",
+				"description": "If %-value of the {max_players} is reached a new server of that template will automatically start.",
+				"minimum": 1,
+				"maximum": 100,
+				"default": 100
+			},
 			"image": {
 				"type": ["null", "string"],
 				"description": "The image of the template.",

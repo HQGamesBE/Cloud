@@ -23,6 +23,10 @@ class ServerManager {
 	address;
 	/** @type {boolean} */
 	query_interval_active = false;
+	/** @type {boolean}
+	 * @readonly */
+	initialized = false;
+	intervals = {};
 
 	templates_folder(...files_or_dirs) {
 		return this.servers_folder("templates/", ...files_or_dirs).replaceAll("\\", "/");
@@ -58,26 +62,31 @@ class ServerManager {
 		process.on("exit", serverManager.exit);
 		this.clearRunningFolder();
 		this.loadTemplates();
-		this.query_interval = setInterval(() => {
+
+		this.intervals.service_check = setInterval(() => {
+			serverManager.checkMinServices();
+			serverManager.templates.forEach((template) => {
+				template.checkMinPlayerCounts();
+				template.checkMaxPlayerCounts();
+			});
+		}, 1000);
+		this.intervals.query = setInterval(() => {
 			if (!this.query_interval_active) {
 				this.query_interval_active = true;
 				this.servers.forEach((server) => {
-					if (server.running && !server.killed && !server.query_running && serverManager.servers.has(server.identifier)) {
-						server.query();
-					}
+					if (server.running && !server.killed && !server.query_running && serverManager.servers.has(server.identifier)) server.query();
 				});
 				this.query_interval_active = false;
 			}
-		}, 1000);
+		}, 500);
 		console.log("[ServerManager] ".blue + " Started!");
 	}
 
 	exit() {
 		console.log("[ServerManager] ".blue + "Shutting down...");
 		if (this.server) this.server.close();
-		if (this.query_interval) clearInterval(this.query_interval);
+		for (let intervalKey in this.intervals) clearInterval(this.intervals[intervalKey]);
 		serverManager.servers.forEach((server) => {
-			console.log(server)
 			server.stop();
 			server.kill();
 		});
@@ -121,15 +130,24 @@ class ServerManager {
 		console.log("[ServerManager] ".blue + "Loading templates...");
 		this.templates.clear();
 		let templates = JSON.parse(LIBARIES.fs.readFileSync(this.servers_folder("templates.json")).toString());
-		for (let template of templates) {
-			this.templates.set(template.name, template = new Template(template));
+		for (let template_cfg of templates) {
+			let template = new Template(template_cfg);
+			this.templates.set(template.name, template);
+			for (let i = 1; i <= template.start_amount; i++) template.startServer();
 		}
-		this.templates.forEach((template) => {
-			if (template.type !== ServerType.game) {
-				template.startServer();
-			}
-		});
 		console.log("[ServerManager] ".blue + "Loaded " + this.templates.size + " template" + (this.templates.size === 1 ? "" : "s") + "!");
+	}
+
+	checkMinServices(onStartup = false) {
+		let start = Date.now();
+		this.templates.forEach((template) => template.checkMinServiceCount(onStartup));
+		let end = Math.round(Date.now() - start).toFixed(3);
+
+		if (!this.initialized) {
+			//TODO: Logger
+		//	getLogger()->info("{$servers} servers started in {$end}s.");
+			this.initialized = true;
+		}
 	}
 }
 class ServerType {

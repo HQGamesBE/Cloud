@@ -1,5 +1,7 @@
 ./node_modules
 ./.idea/deployment.xml
 
+./resources/config_private.json
 ./resources/servers/.running
 ./resources/servers/templates
+/resources/servers/.running/

@@ -13,11 +13,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "fs-extra": "^10.1.0",
     "colors": "^1.4.0",
     "discord.js": "^13.8.0",
+    "fs-extra": "^10.1.0",
     "jsonwebtoken": "^8.5.1",
     "libquery": "^1.0.2",
+    "moment": "^2.29.3",
     "node-getopt": "^0.3.2",
     "properties-reader": "^2.2.0",
     "terminal-kit": "^2.4.0"
