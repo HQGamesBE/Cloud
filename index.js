@@ -3,6 +3,7 @@
  * All rights reserved.
  * I don't want anyone to use my source code without permission.
  */
+//global.wtf = require('wtfnode');
 
 require("colors");
 opt = require('node-getopt').create([
@@ -30,6 +31,7 @@ global.eachOS= (win32, linux, darwin) => {
 	return undefined;
 };
 
+const Loggable = require("./src/classes/Loggable");
 const {ServerManager, GameState, ServerState, ServerType, ServerVisibility} = require('./src/classes/ServerManager.js');
 global.GameState = GameState;
 global.ServerState = ServerState;
@@ -49,22 +51,18 @@ global.LIBARIES = {
 	crypto: require("crypto"),
 	libquery: require("libquery"),
 	properties_reader: require("properties-reader"),
-	promisify: require("util").promisify,
+	util: require("util"),
 	moment: require("moment"),
 };
+global.PROMISED_FUNCTIONS = {
+	exec: LIBARIES.util.promisify(LIBARIES.child_process.exec),
+}
 global.PACKAGE = require("./package.json");
 global.CONFIG = require("./resources/config.json");
 global.CONFIG_PRIVATE = require("./resources/config_private.json");
 global.TESTING = opt.argv.includes("dev");
 global.DEBUG = opt.argv.includes("debug");
 global.Logger = require("./src/utils/Logger.js");
-Logger.success("success");
-Logger.blank("blank");
-Logger.warn("warn");
-Logger.error("error");
-Logger.debug("debug");
-Logger.notice("notice");
-
 
 console.commands = new (require("discord.js")).Collection();
 console.command_aliases = new (require("discord.js")).Collection();
@@ -99,8 +97,8 @@ console.loadCommands = () => {
 				command.execute(args);
 			}
 		} catch (e) {
-			console.error("Command failed".red);
-			console.error(e);
+			Logger.error("Command failed".red);
+			Logger.error(e);
 		}
 	} else {
 		console.log("Command '".red + input_command + "' not found!".red);
@@ -110,6 +108,8 @@ console.loadCommands = () => {
 
 console.loadCommands();
 
-process.on("uncaughtException", (err) => Logger.error(err));
+process.on("uncaughtException", (err) => {
+	Logger.error(err);
+});
 
 require("./src/index.js");

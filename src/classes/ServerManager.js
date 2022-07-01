@@ -4,13 +4,13 @@
  * I don't want anyone to use my source code without permission.
  */
 const Discord = require("discord.js");
-const {Socket} = require("./server/Socket.js");
+const Socket = require("./server/Socket.js");
 const {Server} = require("./server/Server.js");
 const {Template} = require("./server/Template.js");
 
 class ServerManager {
 	/** @type {Socket} */
-	server;
+	socket;
 	/** @type {Discord.Collection<string, Server>} */
 	servers = new Discord.Collection();
 	/** @type {Discord.Collection<string, Template>} */
@@ -26,6 +26,7 @@ class ServerManager {
 	/** @type {boolean}
 	 * @readonly */
 	initialized = false;
+	running = false;
 	intervals = {};
 
 	templates_folder(...files_or_dirs) {
@@ -42,6 +43,14 @@ class ServerManager {
 
 	constructor(bind_port) {
 		global.serverManager = global.serverManager || this;
+		this.running = true;
+
+		process.on("exit", this.exit);
+		process.on("SIGINT", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
+		process.on("SIGTERM", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
+		process.on("SIGUSR1", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
+		process.on("SIGUSR2", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
+
 		this.bind_port = bind_port;
 		LIBARIES.fs.mkdirSync(this.running_folder(), {recursive: true});
 		LIBARIES.fs.mkdirSync(this.templates_folder(), {recursive: true});
@@ -55,17 +64,16 @@ class ServerManager {
 			if (_interface.length > 0) this.address = _interface[0].address;
 		}
 
-		console.log("[ServerManager] ".blue + "Starting...");
-		this.server = new Socket(this.bind_port);
-		this.server.start();
+		this.log("Starting...");
+		this.socket = new Socket(this.bind_port);
+		this.socket.start();
 
-		process.on("exit", serverManager.exit);
 		this.clearRunningFolder();
 		this.loadTemplates();
 
-		this.intervals.service_check = setInterval(() => {
+		this.intervals.service_check = setInterval(async () => {
 			serverManager.checkMinServices();
-			serverManager.templates.forEach((template) => {
+			serverManager.templates.forEach(async (template) => {
 				template.checkMinPlayerCounts();
 				template.checkMaxPlayerCounts();
 			});
@@ -79,20 +87,27 @@ class ServerManager {
 				this.query_interval_active = false;
 			}
 		}, 500);
-		console.log("[ServerManager] ".blue + " Started!");
+		this.log("Started!");
 	}
 
-	exit() {
-		console.log("[ServerManager] ".blue + "Shutting down...");
-		if (this.server) this.server.close();
-		for (let intervalKey in this.intervals) clearInterval(this.intervals[intervalKey]);
+	log(content) {
+		Logger.class(this, content);
+	}
+
+	getLoggerPrefix() {
+		return "[".gray + "ServerManager".blue + "]".gray;
+	}
+
+	async exit() {
+		serverManager.running = false;
+		serverManager.log("Shutting down...");
+		if (this.socket) serverManager.socket.close();
+		for (let intervalKey in serverManager.intervals) clearInterval(serverManager.intervals[intervalKey]) && delete serverManager.intervals[intervalKey];
 		serverManager.servers.forEach((server) => {
-			server.stop();
+			server.stop("Cloud shutdown");
 			server.kill();
 		});
 		serverManager.clearRunningFolder();
-		console.log("[ServerManager] ".blue + "Shutdown.");
-		console.log("Written by ".bgBlue.cyan + "xxAROX".underline.bgBlue);
 	}
 
 	randomPort() {
@@ -121,13 +136,13 @@ class ServerManager {
 	clearRunningFolder() {
 		for (let file of LIBARIES.fs.readdirSync(this.running_folder())) {
 			LIBARIES.fs.rmSync(this.running_folder(file), {recursive: true});
-			if (DEBUG) console.log("[ServerManager] ".blue + "Deleted " + file);
+			if (DEBUG) this.log("Deleted " + file);
 		}
-		console.log("[ServerManager] ".blue + "Cleared running folder!");
+		this.log("Cleared running folder!");
 	}
 
 	async loadTemplates() {
-		console.log("[ServerManager] ".blue + "Loading templates...");
+		this.log("Loading templates...");
 		this.templates.clear();
 		let templates = JSON.parse(LIBARIES.fs.readFileSync(this.servers_folder("templates.json")).toString());
 		for (let template_cfg of templates) {
@@ -135,17 +150,20 @@ class ServerManager {
 			this.templates.set(template.name, template);
 			for (let i = 1; i <= template.start_amount; i++) template.startServer();
 		}
-		console.log("[ServerManager] ".blue + "Loaded " + this.templates.size + " template" + (this.templates.size === 1 ? "" : "s") + "!");
+		this.log("Loaded " + this.templates.size + " template" + (this.templates.size === 1 ? "" : "s") + "!");
 	}
 
 	checkMinServices(onStartup = false) {
 		let start = Date.now();
-		this.templates.forEach((template) => template.checkMinServiceCount(onStartup));
+		this.templates.forEach((template) => {
+			if (serverManager.running) {
+				template.checkMinServiceCount(onStartup);
+			}
+		});
 		let end = Math.round(Date.now() - start).toFixed(3);
 
 		if (!this.initialized) {
-			//TODO: Logger
-		//	getLogger()->info("{$servers} servers started in {$end}s.");
+			this.log("Started " + this.servers.size + " server" + (this.servers.size === 1 ? "" : "s") + " in " + end + "ms!");
 			this.initialized = true;
 		}
 	}

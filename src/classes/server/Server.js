@@ -15,7 +15,7 @@ class Server extends require("events").EventEmitter{
 	backend_properties = {
 		AuthToken: serverManager.AuthToken,
 		backend_address: "127.0.0.1",
-		backend_port: serverManager.server?.bind_port,
+		backend_port: serverManager.socket?.bind_port,
 	};
 
 	player_count = 0;
@@ -40,6 +40,14 @@ class Server extends require("events").EventEmitter{
 		this.backend_properties.image = template.image;
 	}
 
+	log(content) {
+		Logger.class(this, content);
+	}
+
+	getLoggerPrefix() {
+		return "[".gray + "Server".green + "] ".gray + "[".gray + this.identifier.toString().cyan + "]".gray;
+	}
+
 	/**
 	 * @param {"creating_files"|"created_files"|"boot"|"started"|"command"|"stopping"|"stopped"|"killing"|"killed"|"deleting"|"deleted"} eventName
 	 * @param {(...args: any[]) => void} listener
@@ -51,8 +59,8 @@ class Server extends require("events").EventEmitter{
 
 	async isTmuxSession() {
 		// noinspection JSCheckFunctionSignatures
-		let {strout, strerr} = await LIBARIES.promisify(require("child_process").exec)(`tmux has-session -t ${this.identifier}`).toString();
-		let a =  strout.stdout.startsWith("can't find session") || strout.stdout.includes("no server running on ");
+		let {strout, strerr} = await PROMISED_FUNCTIONS.exec(`tmux has-session -t ${this.identifier}`, (err) => null).toString();
+		let a =  strout?.stdout.startsWith("can't find session") || strout?.stdout.includes("no server running on ");
 		return !a;
 	}
 
@@ -169,16 +177,16 @@ class Server extends require("events").EventEmitter{
 		})();
 
 		this.emit("created_files", this);
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Created files");
+		this.log("Created files");
 	}
 
 	boot() {
 		if (!TESTING && LIBARIES.os.platform() === "win32") {
-			console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Windows is not supported yet!".red);
+			this.log("Windows is not supported yet!".red);
 			return;
 		}
 		this.emit("boot", this);
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Starting...");
+		this.log("Starting...");
 
 		if (!this.start_script) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because the start script is not defined!");
 
@@ -215,22 +223,22 @@ class Server extends require("events").EventEmitter{
 		})
 		.then(() => {
 			this.emit("booted", this);
-			console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Started!");
+			this.log("Started!");
 		})
 		.catch(error => {
 			this.emit("error", error);
-			console.error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because " + error.message);
+			Logger.error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because " + error.message);
 		});
 	}
 
 	afterStart() {
 		this.emit("started", this);
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " PID: " + this.pid + " | Started on port " + this.port.toString().bgYellow.black);
+		this.log("PID: " + this.pid + " | Started on port " + this.port.toString().bgYellow.black);
 	}
 
 	async executeCommand(command) {
-		if (!this.start_script) return console.error("[Important]".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not execute the command, because the start script is not defined!");
-		if (!this.running) return;
+		if (!this.start_script) return Logger.error("[Important]".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not execute the command, because the start script is not defined!");
+		if (!this.running) return undefined;
 
 		if (LIBARIES.os.platform() === "win32") {
 			LIBARIES.child_process.exec('Get-CimInstance Win32_Process -Filter "name = \'cmd.exe\'" | ForEach-Object {\n' +
@@ -240,14 +248,14 @@ class Server extends require("events").EventEmitter{
 				'}', {
 				shell: "powershell.exe"
 			});
-			//console.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on windows!".red);
+			//Logger.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on windows!".red);
 		}
-		else if (LIBARIES.os.platform() === "darwin") console.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on macos!".red);
+		else if (LIBARIES.os.platform() === "darwin") Logger.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on macos!".red);
 		else if (LIBARIES.os.platform() === "linux") {
-			let {strout, strerr} = LIB.child_process.exec("" + this.start_script + " " + command);
-			return {strout, strerr};
+			let str = LIBARIES.child_process.exec("" + this.start_script + " " + command);
+			return {strout:str?.strout, strerr:str?.strerr};
 		}
-		else console.error("[Error]".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Your operating system is not supported!".red);
+		else Logger.error("Your operating system is not supported!".red);
 	}
 
 	stop(reason) {
@@ -257,7 +265,7 @@ class Server extends require("events").EventEmitter{
 		let done = this.executeCommand(reason ? "stop " + reason : "stop").then(() => clearTimeout(timeout) && this.deleteFiles());
 		this.running = false;
 		serverManager.servers.delete(this.identifier);
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Server stopped with reason: " + reason);
+		this.log("Server stopped with reason: " + reason);
 		this.emit("stopped", this);
 	}
 
@@ -265,7 +273,7 @@ class Server extends require("events").EventEmitter{
 		this.emit("killing", this);
 		if (!this.start_script) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because the start script is not defined!");
 		if (this.killed) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because it is already killed!");
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Killing server...");
+		this.log("Killing server...");
 
 		if (LIBARIES.os.platform() === "win32") LIBARIES.child_process.exec("taskkill /F /PID " + this.pid) && LIBARIES.child_process.exec("taskkill /F /PID " + this.start_script_pid);
 		else if (LIBARIES.os.platform() === "linux") {
@@ -275,15 +283,15 @@ class Server extends require("events").EventEmitter{
 		else throw new Error("Your operating system is not supported!");
 		this.running = false;
 		this.killed = true;
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Server killed!");
+		this.log("Server killed!");
 		this.emit("killed", this);
 	}
 
 	deleteFiles() {
 		this.emit("deleting", this);
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Deleting files...");
+		this.log("Deleting files...");
 		LIBARIES.fs.unlinkSync(this.folder());
-		console.log("[Server] ".green + ("[" + this.identifier + "]").cyan + " Deleted files!");
+		this.log("Deleted files!");
 		this.emit("deleted", this);
 		this.removeAllListeners();
 	}

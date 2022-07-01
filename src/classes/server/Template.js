@@ -114,6 +114,7 @@ class Template {
 	checkMinServiceCount() {
 		let current = this.getServers().size;
 		if (current < this.start_amount) {
+			console.error(new Error("null"));
 			for (let i = current; i < this.start_amount; i++) {
 				this.startServer();
 			}

@@ -14,23 +14,30 @@ class Socket {
 	constructor(bind_port) {
 		process.on("exit", () => this.close());
 		this.bind_port = bind_port;
-
 		this.socket = LIBARIES.dgram.createSocket("udp4");
 		this.socket.on("message", (msg, remoteInfo) => {
 			this.onMessage(msg.toString(), remoteInfo);
 		});
 		this.socket.on("listening", () => {
 			this.running = true;
-			console.log("[Socket] ".yellow + `Listening on port ${this.bind_host}:${this.bind_port}`);
+			this.log(`Listening on port ${this.bind_host}:${this.bind_port}`);
 		});
 		this.socket.on("close", () => {
 			this.running = false;
-			console.log("[Socket] ".yellow + "Socket closed");
+			this.log("Socket closed");
 		});
 		this.socket.on("error", (err) => {
 			this.running = false;
 			console.log(`[Socket] Error: ${err}`);
 		});
+	}
+
+	log(content) {
+		Logger.class(this, content);
+	}
+
+	getLoggerPrefix() {
+		return "[".gray + "Socket".yellow + "]".gray;
 	}
 
 	/**
@@ -85,7 +92,7 @@ class Socket {
 				required_fields = [ "reason" ];
 				break;
 			case "start_server":
-				required_fields = [ "template_name", "team", "visibility" ];
+				required_fields = [ "template_name", "visibility" ];
 				break;
 			case "stop_server":
 				required_fields = [ "reason", "identifier" ];
@@ -129,7 +136,7 @@ class Socket {
 				break;
 			case "disconnect":
 				this.connections.delete(remoteInfo.address + ":" + remoteInfo.port);
-				console.log("[Socket] ".yellow + "Disconnected from " + data.identifier);
+				this.log("Disconnected from " + data.identifier);
 				break;
 			case "start_server":
 				let template = serverManager.templates.filter(t => t.name === data[ "template_name" ]).first();
@@ -140,14 +147,6 @@ class Socket {
 					}, remoteInfo);
 					return;
 				}
-				let team = db_cache.teams.getTeam(data[ "team" ]);
-				if (!team) {
-					this.sendPacket({
-						type: "error",
-						reason: "Team not found",
-					}, remoteInfo);
-					return;
-				}
 				if (![ ServerVisibility.public, ServerVisibility.private ].includes(data[ "visibility" ])) {
 					this.sendPacket({
 						type: "error",
@@ -155,9 +154,9 @@ class Socket {
 					}, remoteInfo);
 					return;
 				}
-				let started_server = template.startServer(data[ "team" ]);
+				let started_server = template.startServer();
 				started_server.public_visibility = data[ "visibility" ];
-				started_server.events.once("started", () => {
+				started_server.once("started", () => {
 					this.sendPacket({
 						type: "start_server",
 						success: true,
@@ -187,11 +186,11 @@ class Socket {
 	}
 
 	close() {
-		console.log("[Socket] ".yellow + "Closing socket...");
-		if (this.running && this.socket.running) {
-			this.socket.close();
-		}
-		console.log("[Socket] ".yellow + "Socket closed.");
+		this.log("Closing socket..");
+		if (this.running && this.socket.running) this.socket.close();
+		this.log("Socket closed.");
+		serverManager.log("Shutdown.");
+		console.log("Written by ".bgBlue.cyan + "xxAROX".underline.bgBlue);
 	}
 }
-module.exports.Socket = Socket
+module.exports = Socket

@@ -3,7 +3,8 @@
  * All rights reserved.
  * I don't want anyone to use my source code without permission.
  */
-const {success} = require("./Logger");
+const Loggable = require("../classes/Loggable.js");
+
 const LOG_LEVEL_NONE = "NONE";
 const LOG_LEVEL_DEBUG = "DEBUG";
 const LOG_LEVEL_ERROR = "ERROR";
@@ -38,19 +39,13 @@ const __log = (level, content) => {
 			break;
 		}
 		case LOG_LEVEL_WARNING: {
-			prefix = prefix.bgYellow.black;
-			prefix = "W".yellow +
-				"A".black +
-				"R".yellow +
-				"N".black +
-				"I".yellow +
-				"N".black +
-				"G".yellow
+			prefix = "Warning".bgYellow.black
 			break;
 		}
 	}
 	console.log(date + " " + line + " " + (prefix !== "" ? "[".gray + prefix + "] ".gray : "") + content);
 };
+
 module.exports.error = (e) => {
 	__log(LOG_LEVEL_ERROR, e.message);
 };
@@ -65,6 +60,14 @@ module.exports.notice = (content) => {
 };
 module.exports.blank = (content) => {
 	__log(LOG_LEVEL_NONE, content);
+};
+/**
+ * @param loggable_class
+ * @param {string} content
+ */
+module.exports.class = (loggable_class, content) => {
+	if (typeof loggable_class.getLoggerPrefix !== "function" || !loggable_class instanceof Loggable) return;
+	__log(LOG_LEVEL_NONE, loggable_class.getLoggerPrefix() + ": " + content);
 };
 module.exports.success = (content) => {
 	__log(LOG_LEVEL_SUCCESS, content);
