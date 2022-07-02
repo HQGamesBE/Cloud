@@ -18,7 +18,7 @@ class ServerManager {
 	/** @type {string} */
 	Software = this.servers_folder("server", "PocketMine-MP.phar");
 	/** @type {string} */
-	AuthToken = LIBARIES.jwt.sign({auth: "xxAROX",random: generateId(16)}, "secret", {expiresIn: -1});
+	AuthToken = LIBRARIES.jwt.sign({auth: "xxAROX",random: generateId(16)}, "secret", {expiresIn: -1});
 	/** @type {string} */
 	address;
 	/** @type {boolean} */
@@ -38,7 +38,7 @@ class ServerManager {
 	}
 
 	servers_folder(...files_or_dirs) {
-		return LIBARIES.path.join(__dirname + "/../../resources/servers/", ...files_or_dirs).replaceAll("\\", "/");
+		return LIBRARIES.path.join(__dirname + "/../../resources/servers/", ...files_or_dirs).replaceAll("\\", "/");
 	}
 
 	constructor(bind_port) {
@@ -52,15 +52,15 @@ class ServerManager {
 		process.on("SIGUSR2", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
 
 		this.bind_port = bind_port;
-		LIBARIES.fs.mkdirSync(this.running_folder(), {recursive: true});
-		LIBARIES.fs.mkdirSync(this.templates_folder(), {recursive: true});
-		LIBARIES.fs.mkdirSync(this.servers_folder("server"), {recursive: true});
-		if (!LIBARIES.fs.existsSync(this.servers_folder("templates.json"))) LIBARIES.fs.writeFileSync(this.servers_folder("templates.json"), "[\n]");
+		LIBRARIES.fs.mkdirSync(this.running_folder(), {recursive: true});
+		LIBRARIES.fs.mkdirSync(this.templates_folder(), {recursive: true});
+		LIBRARIES.fs.mkdirSync(this.servers_folder("server"), {recursive: true});
+		if (!LIBRARIES.fs.existsSync(this.servers_folder("templates.json"))) LIBRARIES.fs.writeFileSync(this.servers_folder("templates.json"), "[\n]");
 
 
 		this.address = undefined;
-		for (let dev in LIBARIES.os.networkInterfaces()) {
-			let  _interface = LIBARIES.os.networkInterfaces()[dev].filter((details) => details.family === 'IPv4' && details.internal === false);
+		for (let dev in LIBRARIES.os.networkInterfaces()) {
+			let  _interface = LIBRARIES.os.networkInterfaces()[dev].filter((details) => details.family === 'IPv4' && details.internal === false);
 			if (_interface.length > 0) this.address = _interface[0].address;
 		}
 		console.log(this.address);
@@ -126,7 +126,7 @@ class ServerManager {
 	async checkPortIfUsed(port) {
 		return new Promise(async (resolve, reject) => {
 			try {
-				await LIBARIES.libquery.query(serverManager.address, port);
+				await LIBRARIES.libquery.query(serverManager.address, port);
 				resolve(true);
 			} catch (e) {
 				resolve(false);
@@ -135,8 +135,8 @@ class ServerManager {
 	}
 
 	clearRunningFolder() {
-		for (let file of LIBARIES.fs.readdirSync(this.running_folder())) {
-			LIBARIES.fs.rmSync(this.running_folder(file), {recursive: true});
+		for (let file of LIBRARIES.fs.readdirSync(this.running_folder())) {
+			LIBRARIES.fs.rmSync(this.running_folder(file), {recursive: true});
 			if (DEBUG) this.log("Deleted " + file);
 		}
 		this.log("Cleared running folder!");
@@ -145,7 +145,7 @@ class ServerManager {
 	async loadTemplates() {
 		this.log("Loading templates...");
 		this.templates.clear();
-		let templates = JSON.parse(LIBARIES.fs.readFileSync(this.servers_folder("templates.json")).toString());
+		let templates = JSON.parse(LIBRARIES.fs.readFileSync(this.servers_folder("templates.json")).toString());
 		for (let template_cfg of templates) {
 			let template = new Template(template_cfg);
 			this.templates.set(template.name, template);

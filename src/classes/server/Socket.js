@@ -6,7 +6,7 @@
 class Socket {
 	/** @private */
 	socket = null;
-	connections = new LIBARIES.discord.Collection();
+	connections = new LIBRARIES.discord.Collection();
 	running = false;
 	bind_host = "127.0.0.1";
 	bind_port = null;
@@ -14,7 +14,7 @@ class Socket {
 	constructor(bind_port) {
 		process.on("exit", () => this.close());
 		this.bind_port = bind_port;
-		this.socket = LIBARIES.dgram.createSocket("udp4");
+		this.socket = LIBRARIES.dgram.createSocket("udp4");
 		this.socket.on("message", (msg, remoteInfo) => {
 			this.onMessage(msg.toString(), remoteInfo);
 		});

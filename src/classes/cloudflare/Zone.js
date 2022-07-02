@@ -19,7 +19,7 @@ class Zone {
 	constructor(id, name) {
 		this.#id = id;
 		this.#name = name;
-		this.#dns_records = new LIBARIES.discord.Collection();
+		this.#dns_records = new LIBRARIES.discord.Collection();
 	}
 
 	/**

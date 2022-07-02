@@ -18,7 +18,7 @@ class CloudflareManager {
 	#zones = null;
 
 	constructor() {
-		this.#zones = new LIBARIES.discord.Collection();
+		this.#zones = new LIBRARIES.discord.Collection();
 		this.load();
 	}
 
@@ -35,13 +35,13 @@ class CloudflareManager {
 					};
 				}),
 			});
-		LIBARIES.fs.writeFileSync(this.#cache_file, JSON.stringify(data));
+		LIBRARIES.fs.writeFileSync(this.#cache_file, JSON.stringify(data));
 	}
 
 	async load(from_cache = true) {
 		if (this.#zones) this.#zones.clear();
 		if (from_cache) {
-			let data = LIBARIES.fs.readFileSync(this.#cache_file).toString();
+			let data = LIBRARIES.fs.readFileSync(this.#cache_file).toString();
 			data = JSON.parse(data);
 
 			for (let id in data) {
@@ -50,10 +50,10 @@ class CloudflareManager {
 				this.#zones.set(zone.id, zone);
 			}
 		} else {
-			let zones = await LIBARIES.cloudflare.zones.browse();
+			let zones = await LIBRARIES.cloudflare.zones.browse();
 			for (let zone of zones.result) {
 				let zone_obj = new Zone(zone.id, zone.name);
-				let records = await LIBARIES.cloudflare.dnsRecords.browse(zone.id);
+				let records = await LIBRARIES.cloudflare.dnsRecords.browse(zone.id);
 				for (let record of records.result) zone_obj.addDNSRecord(new DNSRecord(zone_obj, record.id, record.subdomain, record.target));
 				this.#zones.set(zone_obj.id, zone_obj);
 			}
@@ -74,7 +74,7 @@ class CloudflareManager {
 		if (subdomain.length > 63) throw new Error("Subdomain is too long.");
 		if (!target.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) throw new Error("'" + target + "' is not a valid IPv4 address.");
 
-		let record = await LIBARIES.cloudflare.dnsRecords.add(zone.id, {
+		let record = await LIBRARIES.cloudflare.dnsRecords.add(zone.id, {
 			name: subdomain + "." + zone.name,
 			type: "A",
 			content: target
@@ -90,7 +90,7 @@ class CloudflareManager {
 	 * @return {Promise<Object>}
 	 */
 	deleteDNSRecord(zone, record) {
-		return LIBARIES.cloudflare.dnsRecords.del(zone.id, record instanceof DNSRecord ? record.id : record).then(() => zone.removeDNSRecord(record));
+		return LIBRARIES.cloudflare.dnsRecords.del(zone.id, record instanceof DNSRecord ? record.id : record).then(() => zone.removeDNSRecord(record));
 	}
 
 	/**
@@ -107,7 +107,7 @@ class CloudflareManager {
 		if (subdomain.length > 63) throw new Error("Subdomain is too long.");
 		if (!target.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) throw new Error("'" + target + "' is not a valid IPv4 address.");
 
-		await LIBARIES.cloudflare.dnsRecords.edit(zone.id, record.id, {
+		await LIBRARIES.cloudflare.dnsRecords.edit(zone.id, record.id, {
 			name: subdomain + "." + zone.name,
 			type: "A",
 			content: target

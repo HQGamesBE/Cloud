@@ -46,7 +46,7 @@ global.CONFIG_PRIVATE = require("./resources/config_private.json");
 global.TESTING = opt.argv.includes("dev");
 global.DEBUG = opt.argv.includes("debug");
 global.Logger = require("./src/utils/Logger.js");
-global.LIBARIES = {
+global.LIBRARIES = {
 	fs: require("fs"),
 	fse: require("fs-extra"),
 	discord: require("discord.js"),
@@ -64,7 +64,7 @@ global.LIBARIES = {
 	cloudflare: require("cloudflare")({token: CONFIG_PRIVATE.cloudflare_token}),
 };
 global.PROMISED_FUNCTIONS = {
-	exec: LIBARIES.util.promisify(LIBARIES.child_process.exec),
+	exec: LIBRARIES.util.promisify(LIBRARIES.child_process.exec),
 };
 
 console.commands = new (require("discord.js")).Collection();
@@ -75,9 +75,9 @@ console.loadCommands = () => {
 		console.command_aliases.clear();
 	}
 	console.log("Loading commands...");
-	for (const file of LIBARIES.fs.readdirSync(LIBARIES.path.join(__dirname, "src/commands/console"))) {
+	for (const file of LIBRARIES.fs.readdirSync(LIBRARIES.path.join(__dirname, "src/commands/console"))) {
 		if (file.endsWith(".js")) {
-			const command = require(LIBARIES.path.join(__dirname, "src/commands/console", file));
+			const command = require(LIBRARIES.path.join(__dirname, "src/commands/console", file));
 			console.commands.set(command.name.toLowerCase(), command);
 			if (command.aliases && command.aliases.length > 0) {
 				for (const alias of command.aliases) {

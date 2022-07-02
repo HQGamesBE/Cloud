@@ -71,7 +71,7 @@ class Server extends require("events").EventEmitter{
 		if (this.query_running) return;
 		const isOnlineFunc = async function (server) {
 			try {
-				let data = await LIBARIES.libquery.query(eachOS(() => "127.0.0.1", () => "0.0.0.0", () => "0.0.0.0"), server.port, Server.QUERY_TIMEOUT);
+				let data = await LIBRARIES.libquery.query(eachOS(() => "127.0.0.1", () => "0.0.0.0", () => "0.0.0.0"), server.port, Server.QUERY_TIMEOUT);
 				server.player_count = data.online;
 				return !server.timed_out && server.running && !server.killed;
 			} catch (err) {
@@ -104,20 +104,20 @@ class Server extends require("events").EventEmitter{
 	async createFiles() {
 		this.emit("creating_files", this);
 		this.online_state = ServerState.starting;
-		if (!LIBARIES.fs.existsSync(this.folder())) LIBARIES.fs.mkdirSync(this.folder(), {recursive: true});
-		if (!LIBARIES.fs.existsSync(serverManager.Software)) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + "".cyan + " Could not find the software in '" + serverManager.Software + "'!");
+		if (!LIBRARIES.fs.existsSync(this.folder())) LIBRARIES.fs.mkdirSync(this.folder(), {recursive: true});
+		if (!LIBRARIES.fs.existsSync(serverManager.Software)) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + "".cyan + " Could not find the software in '" + serverManager.Software + "'!");
 
 		// NOTE: backend.json
 		(() => {
-			LIBARIES.fs.writeFileSync(this.folder("backend.json"), JSON.stringify(this.backend_properties, null, 4));
+			LIBRARIES.fs.writeFileSync(this.folder("backend.json"), JSON.stringify(this.backend_properties, null, 4));
 		})();
 
 		// NOTE: start_script
 		(() => {
 			let start_script = undefined;
-			if (LIBARIES.os.platform() === "win32") {
+			if (LIBRARIES.os.platform() === "win32") {
 				let id = generateId(8);
-				LIBARIES.fs.writeFileSync(start_script = this.folder("start.bat"), "" +
+				LIBRARIES.fs.writeFileSync(start_script = this.folder("start.bat"), "" +
 					"@echo off\n" +
 					"title " + id + "\n" +
 					"IF EXIST cmd_pid.txt DEL /F cmd_pid.txt\n" +
@@ -126,15 +126,15 @@ class Server extends require("events").EventEmitter{
 					"exit"
 				);
 			}
-			else if (LIBARIES.os.platform() === "darwin") throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " MacOS is not supported yet!");
-			else if (LIBARIES.os.platform() === "linux") {
+			else if (LIBRARIES.os.platform() === "darwin") throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " MacOS is not supported yet!");
+			else if (LIBRARIES.os.platform() === "linux") {
 				let php = serverManager.servers_folder("server", "bin", "php7", "bin", "php");
-				if (!LIBARIES.fs.existsSync(php)) throw new Error("Could not find the php binary in '" + php + "', get it here https://jenkins.pmmp.io/job/PHP-8.0-Aggregate/lastSuccessfulBuild/artifact/PHP-8.0-Linux-x86_64.tar.gz!");
-				LIBARIES.fs.writeFileSync(start_script = this.folder("start.sh"), php + " " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : ""));
+				if (!LIBRARIES.fs.existsSync(php)) throw new Error("Could not find the php binary in '" + php + "', get it here https://jenkins.pmmp.io/job/PHP-8.0-Aggregate/lastSuccessfulBuild/artifact/PHP-8.0-Linux-x86_64.tar.gz!");
+				LIBRARIES.fs.writeFileSync(start_script = this.folder("start.sh"), php + " " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : ""));
 			}
 			else throw new Error("Your operating system is not supported!");
 
-			if (start_script) LIBARIES.fs.chmodSync(start_script, 0o777);
+			if (start_script) LIBRARIES.fs.chmodSync(start_script, 0o777);
 			else throw new Error("Could not create start.bat or start.sh!");
 
 			this.start_script = start_script;
@@ -142,7 +142,7 @@ class Server extends require("events").EventEmitter{
 
 		// NOTE: server.properties
 		(() => {
-			LIBARIES.fs.writeFileSync(this.folder("server.properties"), "#Properties Config file\n" +
+			LIBRARIES.fs.writeFileSync(this.folder("server.properties"), "#Properties Config file\n" +
 				"language=eng\n" +
 				"motd=" + this.template.display_name  +"\n" +
 				"server-id=" + this.identifier + "\n" +
@@ -172,10 +172,10 @@ class Server extends require("events").EventEmitter{
 			let files = [ "pocketmine.yml", "ops.txt" ];
 			let directories = [ "plugins", "plugin_data", "worlds" ];
 
-			for (let file of files) if (LIBARIES.fs.existsSync(serverManager.servers_folder("server", file))) LIBARIES.fs.copyFileSync(serverManager.servers_folder("server", file), this.folder(file));
+			for (let file of files) if (LIBRARIES.fs.existsSync(serverManager.servers_folder("server", file))) LIBRARIES.fs.copyFileSync(serverManager.servers_folder("server", file), this.folder(file));
 			for (let directory of directories) {
-				if (LIBARIES.fs.existsSync(serverManager.servers_folder("server", directory))) LIBARIES.fse.copySync(serverManager.servers_folder("server", directory), this.folder(directory));
-				else LIBARIES.fs.mkdirSync(this.folder("server", directory), {recursive: true});
+				if (LIBRARIES.fs.existsSync(serverManager.servers_folder("server", directory))) LIBRARIES.fse.copySync(serverManager.servers_folder("server", directory), this.folder(directory));
+				else LIBRARIES.fs.mkdirSync(this.folder("server", directory), {recursive: true});
 			}
 		})();
 
@@ -184,7 +184,7 @@ class Server extends require("events").EventEmitter{
 	}
 
 	boot() {
-		if (!TESTING && LIBARIES.os.platform() === "win32") {
+		if (!TESTING && LIBRARIES.os.platform() === "win32") {
 			this.log("Windows is not supported yet!".red);
 			return;
 		}
@@ -195,11 +195,11 @@ class Server extends require("events").EventEmitter{
 
 		eachOS(
 			() => {
-				LIBARIES.child_process.exec("cd " + this.folder() + " && start start.bat && exit");
+				LIBRARIES.child_process.exec("cd " + this.folder() + " && start start.bat && exit");
 				Logger.error("Console must be closed manually!".bold.underline.italic);
 			},
 			() => {
-				LIBARIES.child_process.exec("cd " + this.folder() + " && tmux new-session -d -s " + this.identifier + " ./start.sh");
+				LIBRARIES.child_process.exec("cd " + this.folder() + " && tmux new-session -d -s " + this.identifier + " ./start.sh");
 			},
 			() => {
 				throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " MacOS is not supported!")
@@ -209,13 +209,13 @@ class Server extends require("events").EventEmitter{
 		new Promise((resolve, reject) => {
 			let timeout = setTimeout(() => reject("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because it is not responding!"), 1000 * 10);
 			let interval = setInterval(() => {
-				if (LIBARIES.fs.existsSync(this.folder("server.lock"))) {
+				if (LIBRARIES.fs.existsSync(this.folder("server.lock"))) {
 					this.running = true;
-					this.pid = Number.parseInt(LIBARIES.fs.readFileSync(this.folder("server.lock")).toString().trim());
+					this.pid = Number.parseInt(LIBRARIES.fs.readFileSync(this.folder("server.lock")).toString().trim());
 
-					if (LIBARIES.os.platform() === "win32" && LIBARIES.fs.existsSync(this.folder("cmd_pid.txt"))) {
-						this.start_script_pid = LIBARIES.fs.readFileSync(this.folder("cmd_pid.txt")).toString().split("\n")[1].replaceAll("\"", "").split(",")[1];
-						LIBARIES.fs.rmSync(this.folder("cmd_pid.txt"));
+					if (LIBRARIES.os.platform() === "win32" && LIBRARIES.fs.existsSync(this.folder("cmd_pid.txt"))) {
+						this.start_script_pid = LIBRARIES.fs.readFileSync(this.folder("cmd_pid.txt")).toString().split("\n")[1].replaceAll("\"", "").split(",")[1];
+						LIBRARIES.fs.rmSync(this.folder("cmd_pid.txt"));
 					}
 					clearInterval(interval);
 					this.afterStart();
@@ -243,8 +243,8 @@ class Server extends require("events").EventEmitter{
 		if (!this.start_script) return Logger.error("[Important]".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not execute the command, because the start script is not defined!");
 		if (!this.running) return undefined;
 
-		if (LIBARIES.os.platform() === "win32") {
-			LIBARIES.child_process.exec('Get-CimInstance Win32_Process -Filter "name = \'cmd.exe\'" | ForEach-Object {\n' +
+		if (LIBRARIES.os.platform() === "win32") {
+			LIBRARIES.child_process.exec('Get-CimInstance Win32_Process -Filter "name = \'cmd.exe\'" | ForEach-Object {\n' +
 				'  if ((Get-Process -Id $_.ProcessId).MainWindowTitle -eq \'TEST\') {\n' +
 				'    (Invoke-CimMethod -InputObject $_ -MethodName GetOwner).User -eq \'SYSTEM\'\n' +
 				'  }\n' +
@@ -253,9 +253,9 @@ class Server extends require("events").EventEmitter{
 			});
 			//Logger.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on windows!".red);
 		}
-		else if (LIBARIES.os.platform() === "darwin") Logger.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on macos!".red);
-		else if (LIBARIES.os.platform() === "linux") {
-			let str = LIBARIES.child_process.exec("" + this.start_script + " " + command);
+		else if (LIBRARIES.os.platform() === "darwin") Logger.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on macos!".red);
+		else if (LIBRARIES.os.platform() === "linux") {
+			let str = LIBRARIES.child_process.exec("" + this.start_script + " " + command);
 			return {strout:str?.strout, strerr:str?.strerr};
 		}
 		else Logger.error("Your operating system is not supported!".red);
@@ -278,10 +278,10 @@ class Server extends require("events").EventEmitter{
 		if (this.killed) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because it is already killed!");
 		this.log("Killing server...");
 
-		if (LIBARIES.os.platform() === "win32") LIBARIES.child_process.exec("taskkill /F /PID " + this.pid) && LIBARIES.child_process.exec("taskkill /F /PID " + this.start_script_pid);
-		else if (LIBARIES.os.platform() === "linux") {
-			LIBARIES.child_process.exec("kill -9 " + this.pid);
-			if (this.isTmuxSession()) LIBARIES.child_process.exec("tmux kill-session -t " + this.identifier);
+		if (LIBRARIES.os.platform() === "win32") LIBRARIES.child_process.exec("taskkill /F /PID " + this.pid) && LIBRARIES.child_process.exec("taskkill /F /PID " + this.start_script_pid);
+		else if (LIBRARIES.os.platform() === "linux") {
+			LIBRARIES.child_process.exec("kill -9 " + this.pid);
+			if (this.isTmuxSession()) LIBRARIES.child_process.exec("tmux kill-session -t " + this.identifier);
 		}
 		else throw new Error("Your operating system is not supported!");
 		this.running = false;
@@ -293,7 +293,7 @@ class Server extends require("events").EventEmitter{
 	deleteFiles() {
 		this.emit("deleting", this);
 		this.log("Deleting files...");
-		LIBARIES.fs.unlinkSync(this.folder());
+		LIBRARIES.fs.unlinkSync(this.folder());
 		this.log("Deleted files!");
 		this.emit("deleted", this);
 		this.removeAllListeners();

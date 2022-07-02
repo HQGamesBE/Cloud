@@ -48,14 +48,14 @@ class Template {
 		this.player_minimum_percent = player_minimum_percent || 0;
 		this.player_maximum_percent = player_maximum_percent || 90;
 
-		if (!LIBARIES.fs.existsSync(serverManager.templates_folder(name.toLowerCase()))) {
-			if (LIBARIES.fs.existsSync(serverManager.templates_folder(name))) {
-				LIBARIES.fs.renameSync(serverManager.templates_folder(name), serverManager.templates_folder(name.toLowerCase()));
+		if (!LIBRARIES.fs.existsSync(serverManager.templates_folder(name.toLowerCase()))) {
+			if (LIBRARIES.fs.existsSync(serverManager.templates_folder(name))) {
+				LIBRARIES.fs.renameSync(serverManager.templates_folder(name), serverManager.templates_folder(name.toLowerCase()));
 			} else {
-				LIBARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()), { recursive: true });
-				LIBARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/worlds", { recursive: true });
-				LIBARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/plugins", { recursive: true });
-				LIBARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/plugin_data", { recursive: true });
+				LIBRARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()), { recursive: true });
+				LIBRARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/worlds", { recursive: true });
+				LIBRARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/plugins", { recursive: true });
+				LIBRARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/plugin_data", { recursive: true });
 				console.log(`Created template folder for ${name}`);
 			}
 		}
@@ -73,7 +73,7 @@ class Template {
 		if (!this.enabled) {
 			return null;
 		}
-		if (!LIBARIES.fs.existsSync(serverManager.Software)) {
+		if (!LIBRARIES.fs.existsSync(serverManager.Software)) {
 			throw new Error(`Software folder not found at ${serverManager.Software}`);
 		}
 		let server = new Server(this, SnowflakeUtil.generate(Date.now()).toString(), serverManager.randomPort());
@@ -93,7 +93,7 @@ class Template {
 
 	/**
 	 * @param {(Server) => boolean} filter
-	 * @return {LIBARIES.discord.Collection<string, Server>|Map<string, Server>}
+	 * @return {LIBRARIES.discord.Collection<string, Server>|Map<string, Server>}
 	 */
 	getServers(filter = () => true) {
 		return serverManager.servers.filter((server) => server.template.name === this.name && filter);

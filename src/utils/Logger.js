@@ -13,7 +13,7 @@ const LOG_LEVEL_SUCCESS = "SUCCESS";
 const LOG_LEVEL_NOTICE = "NOTICE";
 
 const __log = (level, content) => {
-	let date = "[".gray + LIBARIES.moment().format("HH:m:ss").yellow + "]".gray;
+	let date = "[".gray + LIBRARIES.moment().format("HH:m:ss").yellow + "]".gray;
 	let line = "[".gray + (TESTING ? "Development".bgCyan.magenta : "Stable".blue) + "]".gray;
 	let prefix = level.toUpperCase();
 	switch (level.toUpperCase()) {
