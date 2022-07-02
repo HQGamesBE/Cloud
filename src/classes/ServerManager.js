@@ -16,7 +16,7 @@ class ServerManager {
 	/** @type {Discord.Collection<string, Template>} */
 	templates = new Discord.Collection();
 	/** @type {string} */
-	Software = this.servers_folder("PocketMine-MP.phar");
+	Software = this.servers_folder("server", "PocketMine-MP.phar");
 	/** @type {string} */
 	AuthToken = LIBARIES.jwt.sign({auth: "xxAROX",random: generateId(16)}, "secret", {expiresIn: -1});
 	/** @type {string} */
@@ -54,7 +54,7 @@ class ServerManager {
 		this.bind_port = bind_port;
 		LIBARIES.fs.mkdirSync(this.running_folder(), {recursive: true});
 		LIBARIES.fs.mkdirSync(this.templates_folder(), {recursive: true});
-		LIBARIES.fs.mkdirSync(this.servers_folder(), {recursive: true});
+		LIBARIES.fs.mkdirSync(this.servers_folder("server"), {recursive: true});
 		if (!LIBARIES.fs.existsSync(this.servers_folder("templates.json"))) LIBARIES.fs.writeFileSync(this.servers_folder("templates.json"), "[\n]");
 
 
@@ -63,6 +63,7 @@ class ServerManager {
 			let  _interface = LIBARIES.os.networkInterfaces()[dev].filter((details) => details.family === 'IPv4' && details.internal === false);
 			if (_interface.length > 0) this.address = _interface[0].address;
 		}
+		console.log(this.address);
 
 		this.log("Starting...");
 		this.socket = new Socket(this.bind_port);

@@ -128,7 +128,7 @@ class Server extends require("events").EventEmitter{
 			}
 			else if (LIBARIES.os.platform() === "darwin") throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " MacOS is not supported yet!");
 			else if (LIBARIES.os.platform() === "linux") {
-				let php = serverManager.servers_folder("bin", "php7", "bin", "php");
+				let php = serverManager.servers_folder("server", "bin", "php7", "bin", "php");
 				if (!LIBARIES.fs.existsSync(php)) throw new Error("Could not find the php binary in '" + php + "', get it here https://jenkins.pmmp.io/job/PHP-8.0-Aggregate/lastSuccessfulBuild/artifact/PHP-8.0-Linux-x86_64.tar.gz!");
 				LIBARIES.fs.writeFileSync(start_script = this.folder("start.sh"), php + " " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : ""));
 			}
@@ -172,8 +172,11 @@ class Server extends require("events").EventEmitter{
 			let files = [ "pocketmine.yml", "ops.txt" ];
 			let directories = [ "plugins", "plugin_data", "worlds" ];
 
-			for (let file of files) if (LIBARIES.fs.existsSync(serverManager.servers_folder(file))) LIBARIES.fs.copyFileSync(serverManager.servers_folder(file), this.folder(file));
-			for (let directory of directories) if (LIBARIES.fs.existsSync(serverManager.servers_folder(directory))) LIBARIES.fse.copySync(serverManager.servers_folder(directory), this.folder(directory));
+			for (let file of files) if (LIBARIES.fs.existsSync(serverManager.servers_folder("server", file))) LIBARIES.fs.copyFileSync(serverManager.servers_folder("server", file), this.folder(file));
+			for (let directory of directories) {
+				if (LIBARIES.fs.existsSync(serverManager.servers_folder("server", directory))) LIBARIES.fse.copySync(serverManager.servers_folder("server", directory), this.folder(directory));
+				else LIBARIES.fs.mkdirSync(this.folder("server", directory), {recursive: true});
+			}
 		})();
 
 		this.emit("created_files", this);

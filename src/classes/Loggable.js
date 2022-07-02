@@ -11,6 +11,10 @@
  * @project Cloud
  */
 class Loggable {
+	log(content) {
+		Logger.class(this, content);
+	}
+
 	getLoggerPrefix() {
 		return "[".gray + "Loggable".bgWhite.black + "]".gray;
 	}

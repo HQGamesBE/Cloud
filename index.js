@@ -39,6 +39,13 @@ global.ServerType = ServerType;
 global.ServerVisibility = ServerVisibility;
 
 global.term = require("terminal-kit").terminal;
+global.YAML = {parse: require("yaml").parse, stringify: require("yaml").stringify};
+global.PACKAGE = require("./package.json");
+global.CONFIG = require("./resources/config.json");
+global.CONFIG_PRIVATE = require("./resources/config_private.json");
+global.TESTING = opt.argv.includes("dev");
+global.DEBUG = opt.argv.includes("debug");
+global.Logger = require("./src/utils/Logger.js");
 global.LIBARIES = {
 	fs: require("fs"),
 	fse: require("fs-extra"),
@@ -53,16 +60,12 @@ global.LIBARIES = {
 	properties_reader: require("properties-reader"),
 	util: require("util"),
 	moment: require("moment"),
+	https: require("https"),
+	cloudflare: require("cloudflare")({token: CONFIG_PRIVATE.cloudflare_token}),
 };
 global.PROMISED_FUNCTIONS = {
 	exec: LIBARIES.util.promisify(LIBARIES.child_process.exec),
-}
-global.PACKAGE = require("./package.json");
-global.CONFIG = require("./resources/config.json");
-global.CONFIG_PRIVATE = require("./resources/config_private.json");
-global.TESTING = opt.argv.includes("dev");
-global.DEBUG = opt.argv.includes("debug");
-global.Logger = require("./src/utils/Logger.js");
+};
 
 console.commands = new (require("discord.js")).Collection();
 console.command_aliases = new (require("discord.js")).Collection();
