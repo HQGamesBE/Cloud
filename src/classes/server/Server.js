@@ -4,17 +4,17 @@
  * I don't want anyone to use my source code without permission.
  */
 class Server extends require("events").EventEmitter{
-	static QUERY_TIMEOUT = 5 * 1000;
+	static QUERY_TIMEOUT = 3500;
 
 	query_running = false;
 	created = -1;
 	timed_out = false;
-	query_errors = [];
+	query_fails = 0;
 	public_visibility = ServerVisibility.private;
 	online_state = ServerState.offline;
 	backend_properties = {
 		AuthToken: serverManager.AuthToken,
-		backend_address: "127.0.0.1",
+		backend_address: "127.0.0.1", //not needed, because no nodes are used
 		backend_port: serverManager.socket?.bind_port,
 	};
 
@@ -34,6 +34,7 @@ class Server extends require("events").EventEmitter{
 		this.identifier = identifier;
 		this.port = port;
 		this.folder = (...file_or_dirs) => serverManager.running_folder(identifier, ...file_or_dirs);
+		this.log(this.folder())
 		this.backend_properties.identifier = identifier;
 		this.backend_properties.template = template.name;
 		this.backend_properties.display_name = template.display_name;
@@ -45,7 +46,7 @@ class Server extends require("events").EventEmitter{
 	}
 
 	getLoggerPrefix() {
-		return "[".gray + "Server".green + "] ".gray + "[".gray + this.identifier.toString().cyan + "]".gray;
+		return "[".gray + "Server".green + "]".gray + "[".gray + this.identifier.toString().cyan + "]".gray;
 	}
 
 	/**
@@ -68,34 +69,28 @@ class Server extends require("events").EventEmitter{
 		if (!this.running) return;
 		if (this.killed) return;
 		if (this.timed_out) return;
-		if (this.query_running) return;
-		const isOnlineFunc = async function (server) {
-			try {
-				let data = await LIBRARIES.libquery.query(eachOS(() => "127.0.0.1", () => "0.0.0.0", () => "0.0.0.0"), server.port, Server.QUERY_TIMEOUT);
-				server.player_count = data.online;
-				return !server.timed_out && server.running && !server.killed;
-			} catch (err) {
-				server.query_errors.push(err);
-				return false;
-			} finally {
-				server.query_running = false;
-			}
-		};
+		let online = false;
 
-		if (!(await isOnlineFunc(this))) {
-			if (this.query_errors.length > 5) {
-				this.timed_out = true;
-				this.timeout();
-			}
+		try {
+			let data = await LIBRARIES.mcquery.query(eachOS(() => "127.0.0.1", () => "0.0.0.0", () => "0.0.0.0"), this.port, Server.QUERY_TIMEOUT);
+			this.player_count = data.online || 0;
+			online = data.online !== undefined && !this.timed_out && this.running && !this.killed;
+		} catch (err) {
+		}
+
+		if (!online) {
+			if (this.query_fails >= 3) this.timeout();
+			else this.query_fails++;
 		} else {
-			this.query_errors.shift();
 			this.online_state = ServerState.online;
 		}
+		return online;
 	}
 
 	timeout() {
 		this.online_state = ServerState.offline;
 		this.timed_out = true;
+		this.query_fails = 0;
 		this.query_running = false;
 		this.player_count = 404;
 		this.stop("Server timed out");
@@ -115,24 +110,27 @@ class Server extends require("events").EventEmitter{
 		// NOTE: start_script
 		(() => {
 			let start_script = undefined;
-			if (LIBRARIES.os.platform() === "win32") {
-				let id = generateId(8);
-				LIBRARIES.fs.writeFileSync(start_script = this.folder("start.bat"), "" +
-					"@echo off\n" +
-					"title " + id + "\n" +
-					"IF EXIST cmd_pid.txt DEL /F cmd_pid.txt\n" +
-					"tasklist /FI \"ImageName eq cmd.exe\" /FI \"Status eq Running\" /FI \"WindowTitle eq " + id + "\" /FO csv > cmd_pid.txt\n" +
-					"php " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : "") + "\n" +
-					"exit"
-				);
-			}
-			else if (LIBRARIES.os.platform() === "darwin") throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " MacOS is not supported yet!");
-			else if (LIBRARIES.os.platform() === "linux") {
-				let php = serverManager.servers_folder("server", "bin", "php7", "bin", "php");
-				if (!LIBRARIES.fs.existsSync(php)) throw new Error("Could not find the php binary in '" + php + "', get it here https://jenkins.pmmp.io/job/PHP-8.0-Aggregate/lastSuccessfulBuild/artifact/PHP-8.0-Linux-x86_64.tar.gz!");
-				LIBRARIES.fs.writeFileSync(start_script = this.folder("start.sh"), php + " " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : ""));
-			}
-			else throw new Error("Your operating system is not supported!");
+			eachOS(
+				() => {
+					let id = generateId(8);
+					console.log(this.folder("start.bat"));
+					LIBRARIES.fs.writeFileSync(start_script = this.folder("start.bat"), "" +
+						"@echo off\n" +
+						"title " + id + "\n" +
+						"IF EXIST cmd_pid.txt DEL /F cmd_pid.txt\n" +
+						"tasklist /FI \"ImageName eq cmd.exe\" /FI \"Status eq Running\" /FI \"WindowTitle eq " + id + "\" /FO csv > cmd_pid.txt\n" +
+						"php " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : "") + "\n" +
+						"exit"
+					);
+				},
+				() => {
+					if (!LIBRARIES.fs.existsSync(serverManager.Binary)) throw new Error("Could not find the php binary in '" + serverManager.Binary + "'!");
+					LIBRARIES.fs.writeFileSync(start_script = this.folder("start.sh"), serverManager.Binary + " " + serverManager.Software + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : ""));
+				},
+				() => {
+					throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " MacOS is not supported yet!");
+				}
+			);
 
 			if (start_script) LIBRARIES.fs.chmodSync(start_script, 0o777);
 			else throw new Error("Could not create start.bat or start.sh!");
@@ -193,6 +191,7 @@ class Server extends require("events").EventEmitter{
 
 		if (!this.start_script) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because the start script is not defined!");
 
+		console.log(this.folder());
 		eachOS(
 			() => {
 				LIBRARIES.child_process.exec("cd " + this.folder() + " && start start.bat && exit");

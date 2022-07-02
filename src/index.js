@@ -3,6 +3,6 @@
  * All rights reserved.
  * I don't want anyone to use my source code without permission.
  */
+console.log("WOEKS");
 const {ServerManager} = require("./classes/ServerManager");
-
 global.serverManager = new ServerManager(CONFIG.bind_port);

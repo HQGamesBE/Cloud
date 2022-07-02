@@ -20,6 +20,7 @@ class CloudflareManager {
 	constructor() {
 		this.#zones = new LIBRARIES.discord.Collection();
 		this.load();
+		process.on("beforeExit", this.store.bind(this));
 	}
 
 	store() {
@@ -67,7 +68,7 @@ class CloudflareManager {
 	 * @param {string} target
 	 * @return {Promise<DNSRecord>}
 	 */
-	async createDNSRecord(zone, subdomain, target) {
+	async createDNSRecord(zone, subdomain, target = serverManager.address) {
 		if (subdomain.endsWith(".") || subdomain.endsWith("@")) subdomain = subdomain.substring(0, subdomain.length - 1);
 		if (subdomain.startsWith(".")) subdomain = subdomain.substring(1);
 		if (subdomain.endsWith(zone.name)) subdomain = subdomain.substring(0, subdomain.length - zone.name.length - 1);
@@ -84,23 +85,13 @@ class CloudflareManager {
 	}
 
 	/**
-	 *
-	 * @param {Zone} zone
-	 * @param {DNSRecord|string} record
-	 * @return {Promise<Object>}
-	 */
-	deleteDNSRecord(zone, record) {
-		return LIBRARIES.cloudflare.dnsRecords.del(zone.id, record instanceof DNSRecord ? record.id : record).then(() => zone.removeDNSRecord(record));
-	}
-
-	/**
 	 * @param {Zone} zone
 	 * @param {DNSRecord} record
 	 * @param {string} subdomain
 	 * @param {string} target
 	 * @return {Promise<DNSRecord>}
 	 */
-	async updateDNSRecord(zone, record, subdomain, target) {
+	async updateDNSRecord(zone, record, subdomain, target = serverManager.address) {
 		if (subdomain.endsWith(".") || subdomain.endsWith("@")) subdomain = subdomain.substring(0, subdomain.length - 1);
 		if (subdomain.startsWith(".")) subdomain = subdomain.substring(1);
 		if (subdomain.endsWith(zone.name)) subdomain = subdomain.substring(0, subdomain.length - zone.name.length - 1);
@@ -115,6 +106,15 @@ class CloudflareManager {
 		record.subdomain = subdomain;
 		record.target = target;
 		return record;
+	}
+
+	/**
+	 * @param {Zone} zone
+	 * @param {DNSRecord|string} record
+	 * @return {Promise<Object>}
+	 */
+	deleteDNSRecord(zone, record) {
+		return LIBRARIES.cloudflare.dnsRecords.del(zone.id, record instanceof DNSRecord ? record.id : record).then(() => zone.removeDNSRecord(record));
 	}
 }
 module.exports = CloudflareManager;

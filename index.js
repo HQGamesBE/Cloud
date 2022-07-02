@@ -1,13 +1,13 @@
 /*
  * Copyright (c) Jan Sohn / xxAROX
  * All rights reserved.
- * I don't want anyone to use my source code without permission.
+ * I don"t want anyone to use my source code without permission.
  */
-//global.wtf = require('wtfnode');
+global.wtf = require("wtfnode");
 
 require("colors");
-opt = require('node-getopt').create([
-	['v' , 'version', 'Show version'],
+opt = require("node-getopt").create([
+	["v" , "version", "Show version"],
 ])
 .bindHelp()
 .parseSystem();
@@ -18,8 +18,8 @@ if (opt.options.version === true) {
 }
 
 global.generateId = (length) => {
-	let result           = '';
-	let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	let result           = "";
+	let characters       = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 	let charactersLength = characters.length;
 	for (let i = 0; i < length; i++) result += characters.charAt(Math.floor(Math.random() * charactersLength));
 	return result;
@@ -28,27 +28,41 @@ global.eachOS= (win32, linux, darwin) => {
 	if (process.platform === "win32" && typeof win32 === "function") return win32();
 	else if (process.platform === "linux" && typeof linux === "function") return linux();
 	else if (process.platform === "darwin" && typeof darwin === "function") return darwin();
-	return undefined;
+	throw new Error("Unsupported OS") && process.exit(1);
 };
 
 const Loggable = require("./src/classes/Loggable");
-const {ServerManager, GameState, ServerState, ServerType, ServerVisibility} = require('./src/classes/ServerManager.js');
+const {ServerManager, GameState, ServerState, ServerType, ServerVisibility} = require("./src/classes/ServerManager.js");
 global.GameState = GameState;
 global.ServerState = ServerState;
 global.ServerType = ServerType;
 global.ServerVisibility = ServerVisibility;
 
 global.term = require("terminal-kit").terminal;
+term.windowTitle("Cloud by xxAROX#9881");
+// TODO
+term.on("key", function (key, matches, data) {
+	switch (key) {
+		case "UP" :term.up(1);break;
+		case "DOWN" :term.down(1);break;
+		case "LEFT" :term.left(1);break;
+		case "RIGHT" :term.right(1);break;
+		default:term.noFormat(Buffer.isBuffer(data.code) ? data.code : String.fromCharCode(data.code));break;
+	}
+});
+
 global.YAML = {parse: require("yaml").parse, stringify: require("yaml").stringify};
 global.PACKAGE = require("./package.json");
 global.CONFIG = require("./resources/config.json");
 global.CONFIG_PRIVATE = require("./resources/config_private.json");
 global.TESTING = opt.argv.includes("dev");
 global.DEBUG = opt.argv.includes("debug");
+global.Utils = require("./src/utils/utils.js");
 global.Logger = require("./src/utils/Logger.js");
 global.LIBRARIES = {
 	fs: require("fs"),
 	fse: require("fs-extra"),
+	tarfs: require("tar-fs"),
 	discord: require("discord.js"),
 	path: require("path"),
 	dgram: require("dgram"),
@@ -56,16 +70,19 @@ global.LIBRARIES = {
 	os: require("os"),
 	child_process: require("child_process"),
 	crypto: require("crypto"),
-	libquery: require("libquery"),
 	properties_reader: require("properties-reader"),
 	util: require("util"),
 	moment: require("moment"),
 	https: require("https"),
 	cloudflare: require("cloudflare")({token: CONFIG_PRIVATE.cloudflare_token}),
+	AdmZip: require("adm-zip"),
+	bedrock: require("bedrock-protocol"),
+	mcquery: require("./src/lib/mcbequery"),
 };
 global.PROMISED_FUNCTIONS = {
 	exec: LIBRARIES.util.promisify(LIBRARIES.child_process.exec),
 };
+
 
 console.commands = new (require("discord.js")).Collection();
 console.command_aliases = new (require("discord.js")).Collection();
@@ -74,7 +91,7 @@ console.loadCommands = () => {
 		console.commands.clear();
 		console.command_aliases.clear();
 	}
-	console.log("Loading commands...");
+	Logger.info("Loading commands..");
 	for (const file of LIBRARIES.fs.readdirSync(LIBRARIES.path.join(__dirname, "src/commands/console"))) {
 		if (file.endsWith(".js")) {
 			const command = require(LIBRARIES.path.join(__dirname, "src/commands/console", file));
@@ -86,9 +103,9 @@ console.loadCommands = () => {
 			}
 		}
 	}
-	console.log("Loaded ".green + console.commands.size.toString().green + " command".green + (console.commands.size === 1 ? "" : "s").green + ".".green);
+	Logger.info("Loaded ".green + console.commands.size.toString().green + " command".green + (console.commands.size === 1 ? "" : "s").green + ".".green);
 };
-(() => (require('readline').createInterface({input:process.stdin,output:process.stdout})).on("line", (input) => {
+(() => (require("readline").createInterface({input:process.stdin,output:process.stdout})).on("line", (input) => {
 	let args = input.split(" ");
 	let input_command = args.shift();
 	let command = console.commands.get(input_command.toLowerCase());

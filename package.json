@@ -12,11 +12,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:HQGamesBE/Protocol.git"
+    "url": "git@github.com:HQGamesBE/Cloud.git"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "adm-zip": "^0.5.9",
     "bedrock-protocol": "^3.14.0",
     "cloudflare": "^2.9.1",
     "colors": "^1.4.0",
@@ -25,12 +26,12 @@
     "https": "^1.0.0",
     "jsbinaryutils": "^1.0.9",
     "jsonwebtoken": "^8.5.1",
-    "libquery": "^1.0.2",
     "moment": "^2.29.3",
     "node-getopt": "^0.3.2",
     "properties-reader": "^2.2.0",
-    "protocol": "git+ssh://git@github.com:HQGamesBE/Protocol.git",
+    "tar-fs": "^2.1.1",
     "terminal-kit": "^2.4.0",
+    "wtfnode": "^0.9.1",
     "yaml": "^2.1.1"
   }
 }
