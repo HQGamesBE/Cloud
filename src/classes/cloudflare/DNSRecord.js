@@ -29,6 +29,12 @@ class DNSRecord {
 	 * @param {string} target
 	 */
 	constructor(zone, id, subdomain, target) {
+		if (subdomain.endsWith(".") || subdomain.endsWith("@")) subdomain = subdomain.substring(0, subdomain.length - 1);
+		if (subdomain.startsWith(".")) subdomain = subdomain.substring(1);
+		if (subdomain.endsWith(zone.name)) subdomain = subdomain.substring(0, subdomain.length - zone.name.length - 1);
+		if (subdomain.length > 63) throw new Error("Subdomain is too long.");
+		if (!target.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) throw new Error("'" + target + "' is not a valid IPv4 address.");
+
 		this.#id = id;
 		this.#zone = zone;
 		this.#subdomain = subdomain;
@@ -56,6 +62,14 @@ class DNSRecord {
 		return this.#subdomain;
 	}
 
+	set subdomain(v) {
+		if (v.endsWith(".") || v.endsWith("@")) v = v.substring(0, v.length - 1);
+		if (v.startsWith(".")) v = v.substring(1);
+		if (v.endsWith(this.#zone.name)) v = v.substring(0, v.length - this.#zone.name.length - 1);
+		if (v.length > 63) throw new Error("Subdomain is too long.");
+		this.#subdomain = v;
+	}
+
 	/**
 	 * @return {string}
 	 */
@@ -68,6 +82,11 @@ class DNSRecord {
 	 */
 	get target() {
 		return this.#target;
+	}
+
+	set target(v) {
+		if (!v.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) throw new Error("'" + v + "' is not a valid IPv4 address.");
+		this.#target = v;
 	}
 
 	/**

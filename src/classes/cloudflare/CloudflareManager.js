@@ -3,9 +3,9 @@
  * All rights reserved.
  * I don't want anyone to use my source code without permission.
  */
-
 const Zone = require("./Zone");
 const DNSRecord = require("./DNSRecord");
+
 /**
  * Class CloudflareManager
  * @author Jan Sohn / xxAROX
@@ -14,10 +14,11 @@ const DNSRecord = require("./DNSRecord");
  */
 class CloudflareManager {
 	#cache_file = "./resources/cloudflare_cache.json";
-	/** @type {LIBRARIES.discord.Collection<string, Zone>} */
-	#zones = new LIBARIES.discord.Collection();
+	/** @type {Collection<string, Zone>} */
+	#zones = null;
 
 	constructor() {
+		this.#zones = new LIBARIES.discord.Collection();
 		this.load();
 	}
 
@@ -37,38 +38,83 @@ class CloudflareManager {
 		LIBARIES.fs.writeFileSync(this.#cache_file, JSON.stringify(data));
 	}
 
-	load() {
-		let data = LIBARIES.fs.readFileSync(this.#cache_file).toString();
-		data = JSON.parse(data);
+	async load(from_cache = true) {
+		if (this.#zones) this.#zones.clear();
+		if (from_cache) {
+			let data = LIBARIES.fs.readFileSync(this.#cache_file).toString();
+			data = JSON.parse(data);
 
-		for (let id in data) {
-			let zone = new Zone(id, data[id].name);
-			for (let record of data[id].dns_records) zone.addDNSRecord(new DNSRecord(zone, record.id, record.subdomain, record.target));
-			this.#zones.set(zone.id, zone);
+			for (let id in data) {
+				let zone = new Zone(id, data[id].name);
+				for (let record of data[id].dns_records) zone.addDNSRecord(new DNSRecord(zone, record.id, record.subdomain, record.target));
+				this.#zones.set(zone.id, zone);
+			}
+		} else {
+			let zones = await LIBARIES.cloudflare.zones.browse();
+			for (let zone of zones.result) {
+				let zone_obj = new Zone(zone.id, zone.name);
+				let records = await LIBARIES.cloudflare.dnsRecords.browse(zone.id);
+				for (let record of records.result) zone_obj.addDNSRecord(new DNSRecord(zone_obj, record.id, record.subdomain, record.target));
+				this.#zones.set(zone_obj.id, zone_obj);
+			}
 		}
-		console.log("Loaded " + this.#zones.size + " zones.");
+		Logger.notice("Loaded " + this.#zones.size + " zones from cache.");
 	}
 
 	/**
 	 * @param {Zone} zone
 	 * @param {string} subdomain
 	 * @param {string} target
-	 * @return {DNSRecord}
+	 * @return {Promise<DNSRecord>}
 	 */
-	createDNSRecord(zone, subdomain, target) {
+	async createDNSRecord(zone, subdomain, target) {
 		if (subdomain.endsWith(".") || subdomain.endsWith("@")) subdomain = subdomain.substring(0, subdomain.length - 1);
 		if (subdomain.startsWith(".")) subdomain = subdomain.substring(1);
-		if (subdomain.endsWith(this.#name)) subdomain = subdomain.substring(0, subdomain.length - zone.getName.length - 1);
+		if (subdomain.endsWith(zone.name)) subdomain = subdomain.substring(0, subdomain.length - zone.name.length - 1);
+		if (subdomain.length > 63) throw new Error("Subdomain is too long.");
 		if (!target.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) throw new Error("'" + target + "' is not a valid IPv4 address.");
 
-		LIBARIES.cloudflare.dnsrecords.add(zone.#id, {
-			name: subdomain + "." + zone.getName,
+		let record = await LIBARIES.cloudflare.dnsRecords.add(zone.id, {
+			name: subdomain + "." + zone.name,
 			type: "A",
-			content:
+			content: target
 		});
-		let record = new DNSRecord(this.#id, this, subdomain, target);
-		this.#dns_records.set(record.getId(), record);
+		zone.addDNSRecord(record = new DNSRecord(zone, record.id, subdomain, target));
+		return record;
+	}
+
+	/**
+	 *
+	 * @param {Zone} zone
+	 * @param {DNSRecord|string} record
+	 * @return {Promise<Object>}
+	 */
+	deleteDNSRecord(zone, record) {
+		return LIBARIES.cloudflare.dnsRecords.del(zone.id, record instanceof DNSRecord ? record.id : record).then(() => zone.removeDNSRecord(record));
+	}
+
+	/**
+	 * @param {Zone} zone
+	 * @param {DNSRecord} record
+	 * @param {string} subdomain
+	 * @param {string} target
+	 * @return {Promise<DNSRecord>}
+	 */
+	async updateDNSRecord(zone, record, subdomain, target) {
+		if (subdomain.endsWith(".") || subdomain.endsWith("@")) subdomain = subdomain.substring(0, subdomain.length - 1);
+		if (subdomain.startsWith(".")) subdomain = subdomain.substring(1);
+		if (subdomain.endsWith(zone.name)) subdomain = subdomain.substring(0, subdomain.length - zone.name.length - 1);
+		if (subdomain.length > 63) throw new Error("Subdomain is too long.");
+		if (!target.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) throw new Error("'" + target + "' is not a valid IPv4 address.");
+
+		await LIBARIES.cloudflare.dnsRecords.edit(zone.id, record.id, {
+			name: subdomain + "." + zone.name,
+			type: "A",
+			content: target
+		});
+		record.subdomain = subdomain;
+		record.target = target;
 		return record;
 	}
 }
-module.exports.CloudflareManager = CloudflareManager;
+module.exports = CloudflareManager;
