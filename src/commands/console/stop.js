@@ -8,7 +8,7 @@ module.exports = {
 	description: 'Stop the process.',
 	aliases: ['end', 'exit'],
 	execute: (args) => {
-		console.log("Stopping the process...");
+		Logger.notice("Stopping the process..");
 		process.exit(0);
 	}
 }

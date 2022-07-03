@@ -7,8 +7,13 @@ const Discord = require("discord.js");
 const Socket = require("./server/Socket.js");
 const {Server} = require("./server/Server.js");
 const {Template} = require("./server/Template.js");
+const Proxy = require("./server/Proxy.js");
 
 class ServerManager {
+	/** @type {string} */
+	Software_Version = "4.5.2";
+	/** @type {string} */
+	Proxy_Version = "1.1.8";
 	/** @type {Socket} */
 	socket;
 	/** @type {Discord.Collection<string, Server>} */
@@ -17,8 +22,6 @@ class ServerManager {
 	templates = new Discord.Collection();
 	/** @type {string} */
 	Software = this.servers_folder("server", "PocketMine-MP.phar");
-	/** @type {string} */
-	Software_Version = "4.5.2";
 	/** @type {string} */
 	Binary = undefined;
 	/** @type {string} */
@@ -33,6 +36,8 @@ class ServerManager {
 	waiting = false;
 	running = false;
 	intervals = {};
+	/** @type {Proxy} */
+	#proxy = null;
 
 	resources_folder(...files_or_dirs) {
 		return LIBRARIES.path.join(__dirname + "/../../resources/", ...files_or_dirs).replaceAll("\\", "/");
@@ -141,6 +146,7 @@ class ServerManager {
 		let can_start = true;
 
 		process.on("exit", this.exit);
+		process.on("beforeExit", this.beforeExit);
 		process.on("SIGINT", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
 		process.on("SIGTERM", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
 		process.on("SIGUSR1", () => console.commands.get("stop")?.execute(["Cloud shutdown."]));
@@ -156,12 +162,12 @@ class ServerManager {
 
 		if (!LIBRARIES.fs.existsSync(this.Binary)) {
 			can_start = false;
-			Logger.error("Binary-folder not found at '" + LIBRARIES.path.dirname(LIBRARIES.path.dirname(LIBRARIES.path.dirname(this.Binary))) + "'");
+			Logger.error("Binary-folder not found in '" + LIBRARIES.path.dirname(LIBRARIES.path.dirname(LIBRARIES.path.dirname(this.Binary))) + "'");
 			Logger.hint(" => " + (this.getBinaryUrlForOS()).underline.bold.blue);
 		}
 		if (!LIBRARIES.fs.existsSync(this.Software)) {
 			can_start = false;
-			Logger.error("Software not found at '" + this.Software + "'");
+			Logger.error("Software not found in '" + this.Software + "'");
 			Logger.hint(" => " + ("https://github.com/pmmp/PocketMine-MP/releases/download/" + this.Software_Version + "/PocketMine-MP.phar").underline.bold.blue);
 		}
 
@@ -174,14 +180,16 @@ class ServerManager {
 			let  _interface = LIBRARIES.os.networkInterfaces()[dev].filter((details) => details.family === 'IPv4' && details.internal === false);
 			if (_interface.length > 0) this.address = _interface[0].address;
 		}
+		this.#proxy = new Proxy();
+		can_start = this.#proxy.init();
 		if (!can_start) process.exit(1);
 
-		this.log("Starting...");
+		this.log("Starting..");
 		this.socket = new Socket(this.bind_port);
 		this.socket.start();
 
 		this.clearRunningFolder();
-		this.loadTemplates();
+		this.#proxy.start().then(() => this.loadTemplates());
 
 		this.intervals.service_check = setInterval(async () => {
 			if (this.waiting) return;
@@ -191,12 +199,12 @@ class ServerManager {
 				template.checkMaxPlayerCounts();
 			});
 		}, 1000);
-		setInterval(() => {
-		});
 		this.intervals.query = setInterval(() => {
 			if (this.waiting) return;
 			if (!this.query_interval_active) {
 				this.query_interval_active = true;
+
+				if (this.#proxy.running) this.#proxy.query();
 				this.servers.forEach(async (server) => {
 					if (server.running && !server.killed && !server.query_running && serverManager.servers.has(server.identifier)) {
 						server.query_running = true;
@@ -218,17 +226,25 @@ class ServerManager {
 		return "[".gray + "ServerManager".blue + "]".gray;
 	}
 
-	async exit() {
-		serverManager.running = false;
-		serverManager.log("Shutting down...");
-		if (this.socket) serverManager.socket.close();
+	get proxy() {
+		return this.#proxy;
+	}
+
+	async beforeExit() {
+		serverManager.log("Shutting down..");
+		if (this.#proxy.running) await this.#proxy.stop();
 		for (let intervalKey in serverManager.intervals) clearInterval(serverManager.intervals[intervalKey]) && delete serverManager.intervals[intervalKey];
 		serverManager.servers.forEach((server) => {
 			server.stop("Cloud shutdown");
 			server.kill();
 		});
+	}
+
+	async exit() {
+		serverManager.running = false;
+		if (this.socket) serverManager.socket.close();
 		serverManager.clearRunningFolder();
-		wtf.dump();
+		if (TESTING) wtf.dump();
 	}
 
 	randomPort() {
@@ -262,7 +278,7 @@ class ServerManager {
 	}
 
 	async loadTemplates() {
-		this.log("Loading templates...");
+		this.log("Loading templates..");
 		this.templates.clear();
 		let templates = JSON.parse(LIBRARIES.fs.readFileSync(this.servers_folder("templates.json")).toString());
 		for (let template_cfg of templates) {

@@ -3,7 +3,6 @@
  * All rights reserved.
  * I don"t want anyone to use my source code without permission.
  */
-global.wtf = require("wtfnode");
 
 require("colors");
 opt = require("node-getopt").create([
@@ -28,7 +27,7 @@ global.eachOS= (win32, linux, darwin) => {
 	if (process.platform === "win32" && typeof win32 === "function") return win32();
 	else if (process.platform === "linux" && typeof linux === "function") return linux();
 	else if (process.platform === "darwin" && typeof darwin === "function") return darwin();
-	throw new Error("Unsupported OS") && process.exit(1);
+	throw new Error("Your operating system is not supported!") && process.exit(1);
 };
 
 const Loggable = require("./src/classes/Loggable");
@@ -79,6 +78,7 @@ global.LIBRARIES = {
 	bedrock: require("bedrock-protocol"),
 	mcquery: require("./src/lib/mcbequery"),
 };
+global.wtf = TESTING ? require("wtfnode") : undefined;
 global.PROMISED_FUNCTIONS = {
 	exec: LIBRARIES.util.promisify(LIBRARIES.child_process.exec),
 };
@@ -121,7 +121,7 @@ console.loadCommands = () => {
 			Logger.error(e);
 		}
 	} else {
-		console.log("Command '".red + input_command + "' not found!".red);
+		Logger.info("Command '".red + input_command + "' not found!".red);
 	}
 	console.registerReadlineInterface = undefined;
 }))();

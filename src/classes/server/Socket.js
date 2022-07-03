@@ -28,7 +28,7 @@ class Socket {
 		});
 		this.socket.on("error", (err) => {
 			this.running = false;
-			console.log(`[Socket] Error: ${err}`);
+			Logger.error(`[Socket] Error: ${err}`);
 		});
 	}
 

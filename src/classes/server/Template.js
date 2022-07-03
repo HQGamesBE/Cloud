@@ -56,7 +56,7 @@ class Template {
 				LIBRARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/worlds", { recursive: true });
 				LIBRARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/plugins", { recursive: true });
 				LIBRARIES.fs.mkdirSync(serverManager.templates_folder(name.toLowerCase()) + "/plugin_data", { recursive: true });
-				console.log(`Created template folder for ${name}`);
+				Logger.debug(`Created template folder for ${name}`);
 			}
 		}
 		this.folder = (...file_or_dirs) => serverManager.templates_folder(name.toLowerCase(), ...file_or_dirs);

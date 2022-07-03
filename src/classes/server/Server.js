@@ -22,6 +22,8 @@ class Server extends require("events").EventEmitter{
 	running = false;
 	killed = false;
 
+	pid = undefined;
+
 	/**
 	 * @param {Template} template
 	 * @param {string} identifier
@@ -34,7 +36,6 @@ class Server extends require("events").EventEmitter{
 		this.identifier = identifier;
 		this.port = port;
 		this.folder = (...file_or_dirs) => serverManager.running_folder(identifier, ...file_or_dirs);
-		this.log(this.folder())
 		this.backend_properties.identifier = identifier;
 		this.backend_properties.template = template.name;
 		this.backend_properties.display_name = template.display_name;
@@ -59,7 +60,6 @@ class Server extends require("events").EventEmitter{
 	}
 
 	async isTmuxSession() {
-		// noinspection JSCheckFunctionSignatures
 		let {strout, strerr} = await PROMISED_FUNCTIONS.exec(`tmux has-session -t ${this.identifier}`, (err) => null).toString();
 		let a =  strout?.stdout.startsWith("can't find session") || strout?.stdout.includes("no server running on ");
 		return !a;
@@ -82,6 +82,7 @@ class Server extends require("events").EventEmitter{
 			if (this.query_fails >= 3) this.timeout();
 			else this.query_fails++;
 		} else {
+			this.query_fails = 0;
 			this.online_state = ServerState.online;
 		}
 		return online;
@@ -113,7 +114,6 @@ class Server extends require("events").EventEmitter{
 			eachOS(
 				() => {
 					let id = generateId(8);
-					console.log(this.folder("start.bat"));
 					LIBRARIES.fs.writeFileSync(start_script = this.folder("start.bat"), "" +
 						"@echo off\n" +
 						"title " + id + "\n" +
@@ -187,11 +187,10 @@ class Server extends require("events").EventEmitter{
 			return;
 		}
 		this.emit("boot", this);
-		this.log("Starting...");
+		this.log("Starting..");
 
 		if (!this.start_script) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not start the server, because the start script is not defined!");
 
-		console.log(this.folder());
 		eachOS(
 			() => {
 				LIBRARIES.child_process.exec("cd " + this.folder() + " && start start.bat && exit");
@@ -235,29 +234,27 @@ class Server extends require("events").EventEmitter{
 
 	afterStart() {
 		this.emit("started", this);
+		serverManager.proxy.executeCommand("servermanager remove " + this.identifier);
+		serverManager.proxy.executeCommand("servermanager add " + this.identifier + " 127.0.0.1:" + this.port);
 		this.log("PID: " + this.pid + " | Started on port " + this.port.toString().bgYellow.black);
 	}
 
 	async executeCommand(command) {
-		if (!this.start_script) return Logger.error("[Important]".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not execute the command, because the start script is not defined!");
 		if (!this.running) return undefined;
+		if (command.startsWith("/")) command = command.substring(1);
 
-		if (LIBRARIES.os.platform() === "win32") {
-			LIBRARIES.child_process.exec('Get-CimInstance Win32_Process -Filter "name = \'cmd.exe\'" | ForEach-Object {\n' +
-				'  if ((Get-Process -Id $_.ProcessId).MainWindowTitle -eq \'TEST\') {\n' +
-				'    (Invoke-CimMethod -InputObject $_ -MethodName GetOwner).User -eq \'SYSTEM\'\n' +
-				'  }\n' +
-				'}', {
-				shell: "powershell.exe"
-			});
-			//Logger.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on windows!".red);
-		}
-		else if (LIBRARIES.os.platform() === "darwin") Logger.error("[Important] ".bold.red + "[Server] ".green + ("[" + this.identifier + "]").cyan + " Executing commands is not supported on macos!".red);
-		else if (LIBRARIES.os.platform() === "linux") {
-			let str = LIBRARIES.child_process.exec("" + this.start_script + " " + command);
-			return {strout:str?.strout, strerr:str?.strerr};
-		}
-		else Logger.error("Your operating system is not supported!".red);
+		return eachOS(
+			() => {
+				this.log("[Important] ".bold.red + "Executing commands is not supported on windows!".red);
+			},
+			() => {
+				let str = LIBRARIES.child_process.exec("tmux send -t '" + this.identifier + "' '" + command + "' ENTER");
+				return {strout:str?.strout, strerr:str?.strerr};
+			},
+			() => {
+				this.log("[Important] ".bold.red + "Executing commands is not supported on macos!".red);
+			}
+		);
 	}
 
 	stop(reason) {
@@ -275,7 +272,7 @@ class Server extends require("events").EventEmitter{
 		this.emit("killing", this);
 		if (!this.start_script) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because the start script is not defined!");
 		if (this.killed) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because it is already killed!");
-		this.log("Killing server...");
+		this.log("Killing server..");
 
 		if (LIBRARIES.os.platform() === "win32") LIBRARIES.child_process.exec("taskkill /F /PID " + this.pid) && LIBRARIES.child_process.exec("taskkill /F /PID " + this.start_script_pid);
 		else if (LIBRARIES.os.platform() === "linux") {
@@ -291,7 +288,7 @@ class Server extends require("events").EventEmitter{
 
 	deleteFiles() {
 		this.emit("deleting", this);
-		this.log("Deleting files...");
+		this.log("Deleting files..");
 		LIBRARIES.fs.unlinkSync(this.folder());
 		this.log("Deleted files!");
 		this.emit("deleted", this);
