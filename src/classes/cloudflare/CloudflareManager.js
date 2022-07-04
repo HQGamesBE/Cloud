@@ -20,7 +20,6 @@ class CloudflareManager {
 	constructor() {
 		this.#zones = new LIBRARIES.discord.Collection();
 		this.load();
-		process.on("beforeExit", this.store.bind(this));
 	}
 
 	store() {
@@ -42,6 +41,7 @@ class CloudflareManager {
 	async load(from_cache = true) {
 		if (this.#zones) this.#zones.clear();
 		if (from_cache) {
+			if (!LIBRARIES.fs.existsSync(this.#cache_file)) return;
 			let data = LIBRARIES.fs.readFileSync(this.#cache_file).toString();
 			data = JSON.parse(data);
 

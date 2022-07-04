@@ -59,33 +59,38 @@ global.DEBUG = opt.argv.includes("debug");
 global.Utils = require("./src/utils/utils.js");
 global.Logger = require("./src/utils/Logger.js");
 global.LIBRARIES = {
-	fs: require("fs"),
+	fs: require("node:fs"),
 	fse: require("fs-extra"),
 	tarfs: require("tar-fs"),
 	discord: require("discord.js"),
-	path: require("path"),
-	dgram: require("dgram"),
+	path: require("node:path"),
+	dgram: require("node:dgram"),
 	jwt: require("jsonwebtoken"),
-	os: require("os"),
-	child_process: require("child_process"),
-	crypto: require("crypto"),
+	os: require("node:os"),
+	child_process: require("node:child_process"),
+	crypto: require("node:crypto"),
 	properties_reader: require("properties-reader"),
-	util: require("util"),
+	util: require("node:util"),
 	moment: require("moment"),
-	https: require("https"),
+	https: require("node:https"),
 	cloudflare: require("cloudflare")({token: CONFIG_PRIVATE.cloudflare_token}),
 	AdmZip: require("adm-zip"),
 	bedrock: require("bedrock-protocol"),
 	mcquery: require("./src/lib/mcbequery"),
+	docker: eachOS(() => new (require('dockerode'))(), () => new (require('dockerode'))({socketPath: '/var/run/docker.sock'}), () => new (require('dockerode'))()),
+	stream: require("node:stream"),
 };
 global.wtf = TESTING ? require("wtfnode") : undefined;
 global.PROMISED_FUNCTIONS = {
 	exec: LIBRARIES.util.promisify(LIBRARIES.child_process.exec),
 };
+global.bot = new LIBRARIES.discord.Client({
+	intents: ["GUILD_MEMBERS", "GUILDS", "GUILD_MESSAGES", "GUILD_PRESENCES", "GUILD_BANS", "GUILD_SCHEDULED_EVENTS"]
+});
 
 
-console.commands = new (require("discord.js")).Collection();
-console.command_aliases = new (require("discord.js")).Collection();
+console.commands = new LIBRARIES.discord.Collection();
+console.command_aliases = new LIBRARIES.discord.Collection();
 console.loadCommands = () => {
 	if (console.commands.size > 0 || console.command_aliases.size > 0) {
 		console.commands.clear();
@@ -132,4 +137,5 @@ process.on("uncaughtException", (err) => {
 	Logger.error(err);
 });
 
-require("./src/index.js");
+bot.on("ready", () => require("./src/index.js"));
+bot.login(CONFIG_PRIVATE.discord_token);

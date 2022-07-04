@@ -107,12 +107,11 @@ class Proxy extends require("events").EventEmitter {
 
 	stop(reason = undefined) {
 		if (!this.running) return;
-		this.emit("stopping", this);
-		//let timeout = setTimeout(() => this.kill(), 1000 * 7);
+		let timeout = setTimeout(() => this.kill(), 1000 * 7);
 		let done = this.executeCommand("end" + (reason ? " " + reason : "")).then(() => clearTimeout(timeout));
+		console.log(done);
 		this.running = false;
 		this.log("stopped!".red);
-		this.emit("stopped", this);
 		setTimeout(() => this.kill() && this.start(), 1000 * 5);
 	}
 

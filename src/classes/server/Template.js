@@ -73,16 +73,12 @@ class Template {
 		if (!this.enabled) {
 			return null;
 		}
-		if (!LIBRARIES.fs.existsSync(serverManager.Binary)) {
-			serverManager.downloadBinaries(true);
-			throw new Error("Could not find the php binary in '" + serverManager.Binary + "'!");
-		}
 		if (!LIBRARIES.fs.existsSync(serverManager.Software)) {
 			serverManager.downloadSoftware(true);
 			throw new Error(`Software folder not found at ${serverManager.Software}`);
 		}
 		let server = new Server(this, SnowflakeUtil.generate(Date.now()).toString(), serverManager.randomPort());
-		server.createFiles();
+		server.online_state = ServerState.starting;
 		server.boot();
 		serverManager.servers.set(server.identifier, server);
 		return server;

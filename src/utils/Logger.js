@@ -65,6 +65,7 @@ const __log = (level, content) => {
 };
 
 module.exports.error = (e) => {
+	console.error(e);
 	__log(LOG_LEVEL_ERROR, e.message ? e.message : e);
 };
 module.exports.debug = (content) => {
