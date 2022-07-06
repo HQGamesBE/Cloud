@@ -3,7 +3,6 @@
  * All rights reserved.
  * I don't want anyone to use my source code without permission.
  */
-const {control} = require("terminal-kit/lib/vte/fromOutputSequence");
 class Server {
 	static QUERY_TIMEOUT = 3500;
 
@@ -24,8 +23,6 @@ class Server {
 	player_count = 0;
 	running = false;
 	killed = false;
-
-	pid = undefined;
 
 	/**
 	 * @param {Template} template
@@ -124,18 +121,19 @@ class Server {
 
 		// NOTE: [pocketmine.yml, ops.txt, plugins, plugin_data, worlds] folders
 		(() => {
-			let files = [ "pocketmine.yml", "ops.txt" ];
+			let files = [ "pocketmine.yml", "ops.txt", "PocketMine-MP.phar" ];
 			let directories = [ "plugins", "plugin_data", "worlds" ];
 
-			for (let file of files) {
+			if (LIBRARIES.fs.existsSync(serverManager.templates_folder(this.template.name.toLowerCase()))) // NOTE: get templates from templates folder
+				LIBRARIES.fs.cpSync(serverManager.templates_folder(this.template.name.toLowerCase()), this.folder(), {recursive: true});
+
+			for (let file of files) { // NOTE: copy files from global-server-template folder
 				if (LIBRARIES.fs.existsSync(serverManager.servers_folder("server", file)))
-					LIBRARIES.fs.copyFileSync(serverManager.servers_folder("server", file), this.folder(file));
+					LIBRARIES.fs.cpSync(serverManager.servers_folder("server", file), this.folder(file), {recursive: true});
 			}
-			for (let directory of directories) {
+			for (let directory of directories) { // NOTE: copy directories from global-server-template folder
 				if (LIBRARIES.fs.existsSync(serverManager.servers_folder("server", directory)))
-					LIBRARIES.fse.copySync(serverManager.servers_folder("server", directory), this.folder(directory), {recursive: true});
-				else
-					LIBRARIES.fs.mkdirSync(this.folder("server", directory), {recursive: true});
+					LIBRARIES.fs.cpSync(serverManager.servers_folder("server", directory), this.folder(directory), {recursive: true});
 			}
 		})();
 		this.log("Created files");
@@ -145,25 +143,25 @@ class Server {
 		this.#createFiles();
 		this.log("Creating container");
 
-		let Volumes = {};
-		if (LIBRARIES.fs.existsSync(serverManager.servers_folder("server")))
-			Volumes[serverManager.servers_folder("server") + ":" + "/home/server/"] = {};
-		if (LIBRARIES.fs.existsSync(serverManager.templates_folder(this.template.name.toLowerCase())))
-			Volumes[serverManager.templates_folder(this.template.name) + ":" + "/home/server/"] = {};
+		let paths = {};
 		if (LIBRARIES.fs.existsSync(this.folder()))
-			Volumes[this.folder() + ":" + "/home/server/"] = {};
+			paths[this.folder()] = "/home/server/";
 
 		let containerInfo = await LIBRARIES.docker.createContainer({
-			Image: 'hqgames/pmmp:latest',
-			Cmd: [/* "tmux", "new-session", "-d", "-s", "server", "/usr/php/bin/php", "/home/server/PocketMine-MP.phar" + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : "")*/ ],
+			Image: 'ubuntu',
+			Cmd: ["tmux", "new-session", "-d", "-s", "server", "/usr/php/bin/php", "/home/server/PocketMine-MP.phar" + (TESTING ? " --test" : "") + " --no-wizard" + (DEBUG ? " --debug" : "") ],
 			name: this.identifier.toString(),
+			workingDir: "/home/server/",
+			HostConfig: {
+				Binds: [`${this.folder()}:/home/server`],
+			},
 			Tty: true,
-			Volumes,
 		}, undefined)
 		.catch(err => {
 			this.log("Error creating container: " + err.message);
 			this.stop("Error creating container");
 		});
+		if (!containerInfo) throw new Error("Error while creating container");
 		this.container = LIBRARIES.docker.getContainer(containerInfo.id);
 		this.container.attach({stream: true, stdout: true, stderr: true}, function (err, stream) {
 			stream.pipe(process.stdout);
@@ -234,13 +232,13 @@ class Server {
 			AttachStdout: true,
 			AttachStderr: true,
 			Tty: true,
-		});
+		}, undefined);
 	}
 
 	async executeCommand(command) {
 		if (!this.running) return undefined;
 		if (command.startsWith("/")) command = command.substring(1);
-		this.container.exec("/bin/bash", [ "-c", "tmux send -t '" + this.identifier + "' '" + command + "' ENTER" ]);
+		this.container.exec({Cmd:["tmux send -t '" + this.identifier + "' '" + command + "' ENTER" ]});
 	}
 
 	stop(reason) {
@@ -259,7 +257,7 @@ class Server {
 		if (!this.container) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because it is not running!");
 		if (this.killed) throw new Error("[Server] ".green + ("[" + this.identifier + "]").cyan + " Could not kill the server, because it is already killed!");
 		this.log("Killing server..");
-		this.container.exec("/bin/bash", [ "-c", "tmux", "kill-session", "-t", this.identifier ]);
+		this.container.exec({Cmd:[ "-c", "tmux", "kill-session", "-t", this.identifier ]});
 		console.log("killed");
 		this.container.kill();
 		this.running = false;
